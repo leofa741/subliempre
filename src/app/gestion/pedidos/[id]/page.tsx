@@ -10,7 +10,6 @@ import {
   FaCheckCircle, FaClock, FaSpinner, FaTimesCircle, FaBoxOpen, FaFilePdf 
 } from 'react-icons/fa';
 
-// ✅ Asegúrate de que esta ruta coincida con donde guardaste el componente PDF
 import { PedidoPDF } from '@/app/components/pedidospdf/PedidoPDF';
 
 interface ProductoPedido {
@@ -25,6 +24,7 @@ interface Pedido {
   _id: string;
   clienteNombre: string;
   clienteTelefono: string;
+  clienteEmail?: string; // ✅ AGREGADO: Para la alerta por email
   productos: ProductoPedido[];
   estado: 'pendiente' | 'en_produccion' | 'listo' | 'entregado' | 'cancelado';
   total: number;
@@ -50,6 +50,7 @@ export default function DetallePedidoPage() {
   const [nuevoPago, setNuevoPago] = useState<string>('');
   const [notas, setNotas] = useState('');
   const [fechaEntrega, setFechaEntrega] = useState('');
+  const [clienteEmail, setClienteEmail] = useState(''); // ✅ AGREGADO
 
   // ─────────────────────────────────────────────────────────────
   // 🔹 CARGA DEL PEDIDO
@@ -70,7 +71,8 @@ export default function DetallePedidoPage() {
           setPedido(data.pedido);
           setEstado(data.pedido.estado);
           setNotas(data.pedido.notas || '');
-          // Formatear fecha para input type="date" (YYYY-MM-DD)
+          setClienteEmail(data.pedido.clienteEmail || ''); // ✅ AGREGADO
+          
           if (data.pedido.fechaEntregaEstimada) {
             setFechaEntrega(new Date(data.pedido.fechaEntregaEstimada).toISOString().split('T')[0]);
           }
@@ -96,7 +98,6 @@ export default function DetallePedidoPage() {
   const handleSaveChanges = async () => {
     setSaving(true);
     try {
-      // Si hay un nuevo pago, lo sumamos a la seña actual
       const pagoNum = Number(nuevoPago) || 0;
       const nuevaSeña = (pedido?.seña || 0) + pagoNum;
 
@@ -110,7 +111,8 @@ export default function DetallePedidoPage() {
           estado,
           seña: nuevaSeña,
           notas,
-          fechaEntregaEstimada: fechaEntrega
+          fechaEntregaEstimada: fechaEntrega,
+          clienteEmail // ✅ AGREGADO: Se envía al backend
         }),
       });
 
@@ -119,8 +121,8 @@ export default function DetallePedidoPage() {
         toast.success('¡Pedido actualizado correctamente! ✨', {
           style: { background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0' }
         });
-        setPedido(data.pedido); // Actualizar UI con nuevos datos
-        setNuevoPago(''); // Limpiar input de pago
+        setPedido(data.pedido);
+        setNuevoPago('');
       } else {
         toast.error(data.message || 'Error al guardar', {
           style: { background: '#FFF1F2', color: '#BE185D', border: '1px solid #FECDD3' }
@@ -156,23 +158,16 @@ export default function DetallePedidoPage() {
     }
   };
 
-  // ✅ CORREGIDO: Usar la variable de estado 'pedido' (minúscula)
   const handleDownloadPDF = async () => {
     if (!pedido) return;
     try {
-      // Generamos el blob del PDF
       const blob = await pdf(<PedidoPDF pedido={pedido} />).toBlob();
-      
-      // Creamos una URL temporal y forzamos la descarga
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      // ✅ AQUÍ ESTABA EL ERROR: Pedido._id -> pedido._id
       link.download = `Pedido_CandyIlusiones_${pedido._id.slice(-6).toUpperCase()}.pdf`;
       document.body.appendChild(link);
       link.click();
-      
-      // Limpieza
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
@@ -194,7 +189,6 @@ export default function DetallePedidoPage() {
     return new Date(dateString).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
   };
 
-  // Helper para badge de estado
   const getStatusBadge = (estado: string) => {
     const styles: Record<string, { bg: string; text: string; border: string; icon: JSX.Element; label: string }> = {
       pendiente: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', icon: <FaClock className="w-3 h-3" />, label: 'Pendiente' },
@@ -232,7 +226,7 @@ export default function DetallePedidoPage() {
       <div className="max-w-6xl mx-auto">
         
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-50 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-20 mb-8">
           <div className="flex items-center gap-4">
             <button onClick={() => router.back()} className="p-3 rounded-2xl bg-white/80 border border-rose-200 text-stone-600 hover:bg-rose-50 hover:text-rose-600 transition-all shadow-sm">
               <FaArrowLeft />
@@ -246,7 +240,6 @@ export default function DetallePedidoPage() {
             </div>
           </div>
           
-          {/* Botones de Acción */}
           <div className="flex items-center gap-3">
             <button 
               onClick={handleDownloadPDF} 
@@ -262,9 +255,7 @@ export default function DetallePedidoPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* ═══════════════════════════════════════════════════
-              COLUMNA IZQUIERDA: DETALLES DEL PEDIDO (2/3)
-              ═══════════════════════════════════════════════════ */}
+          {/* COLUMNA IZQUIERDA: DETALLES DEL PEDIDO (2/3) */}
           <div className="lg:col-span-2 space-y-6">
             
             {/* Card: Datos de la Clienta */}
@@ -280,6 +271,20 @@ export default function DetallePedidoPage() {
                   <a href={`https://wa.me/${pedido.clienteTelefono.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-lg font-medium text-emerald-600 hover:text-emerald-700 transition-colors flex items-center gap-2">
                     {pedido.clienteTelefono} <span className="text-xs bg-emerald-100 px-2 py-0.5 rounded-full">WhatsApp</span>
                   </a>
+                </div>
+                
+                {/* ✅ NUEVO CAMPO: Email para la alerta */}
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">
+                    Email de la Clienta (para enviar alerta cuando esté "Listo")
+                  </label>
+                  <input 
+                    type="email" 
+                    value={clienteEmail} 
+                    onChange={(e) => setClienteEmail(e.target.value)}
+                    className="w-full px-4 py-3.5 rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all"
+                    placeholder="Ej: clienta@email.com"
+                  />
                 </div>
               </div>
             </div>
@@ -313,9 +318,7 @@ export default function DetallePedidoPage() {
             </div>
           </div>
 
-          {/* ═══════════════════════════════════════════════════
-              COLUMNA DERECHA: ACCIONES Y FINANZAS (Sticky)
-              ═══════════════════════════════════════════════════ */}
+          {/* COLUMNA DERECHA: ACCIONES Y FINANZAS (Sticky) */}
           <div className="lg:col-span-1">
             <div className="sticky top-8 space-y-6">
               
