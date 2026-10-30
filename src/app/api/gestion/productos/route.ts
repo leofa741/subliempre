@@ -274,3 +274,46 @@ export async function DELETE(req: NextRequest) {
         return NextResponse.json({ message: 'Error interno del servidor al eliminar el producto' }, { status: 500 });
     }
 }
+
+// ✅ PATCH: Actualizar parcialmente un producto (ej: cambiar estado "destacado")
+export async function PATCH(req: NextRequest) {
+  try {
+    const admin = await verifyAdmin(req);
+    if (!admin) return NextResponse.json({ message: 'No autorizado' }, { status: 403 });
+
+    await connectDB();
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ message: 'ID del producto es requerido' }, { status: 400 });
+    }
+
+    const body = await req.json();
+    const updateData: any = {};
+
+    // Solo permitimos actualizar campos específicos por seguridad
+    if (body.destacado !== undefined) updateData.destacado = body.destacado;
+    if (body.nuevo !== undefined) updateData.nuevo = body.nuevo;
+
+    const productoActualizado = await ProductoModel.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    if (!productoActualizado) {
+      return NextResponse.json({ message: 'Producto no encontrado' }, { status: 404 });
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Producto actualizado exitosamente', 
+      producto: productoActualizado 
+    }, { status: 200 });
+
+  } catch (error: any) {
+    console.error('❌ Error actualizando producto:', error);
+    return NextResponse.json({ message: 'Error interno del servidor' }, { status: 500 });
+  }
+}

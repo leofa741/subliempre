@@ -9,7 +9,8 @@ import {
     FaBoxOpen,
     FaUsers,
     FaClipboardList,
-    FaArrowRight
+    FaArrowRight,
+    FaBoxes
 } from 'react-icons/fa';
 import Loader from '@/app/components/loading/Loader'; // Ajusta la ruta si es necesario
 
@@ -22,6 +23,14 @@ const modules = [
         icon: <FaBoxOpen className="text-2xl text-rose-500" />,
         iconBg: 'from-rose-100 to-pink-100',
         href: '/gestion/productos',
+    },
+        {
+        id: 'insumos',
+        title: 'Gestión de Insumos',
+        description: 'Administra tus insumos y calcula márgenes de ganancia en tiempo real.',
+        icon: <FaBoxes className="text-2xl text-rose-500" />,
+        iconBg: 'from-rose-100 to-pink-100',
+        href: '/gestion/insumos',
     },
     {
         id: 'clientes',

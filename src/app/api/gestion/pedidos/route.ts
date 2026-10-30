@@ -61,14 +61,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // El middleware del modelo calculará automáticamente el saldoPendiente
+    // ✅ CORRECCIÓN CLAVE: Calcular explícitamente el saldo pendiente 
+    // para satisfacer la validación "required" del Schema de Mongoose.
+    const totalNum = Number(total);
+    const señaNum = Number(seña) || 0;
+    const saldoPendienteNum = Math.max(0, totalNum - señaNum);
+
     const nuevoPedido = await PedidoModel.create({
       clienteNombre: clienteNombre.trim(),
       clienteTelefono: clienteTelefono.trim(),
       productos,
       estado: estado || 'pendiente',
-      total: Number(total),
-      seña: Number(seña) || 0,
+      total: totalNum,
+      seña: señaNum,
+      saldoPendiente: saldoPendienteNum, // <-- Campo agregado explícitamente
       fechaEntregaEstimada: new Date(fechaEntregaEstimada),
       notas: notas?.trim() || '',
       creadoPor: admin.id
@@ -80,6 +86,13 @@ export async function POST(req: NextRequest) {
     );
   } catch (error: any) {
     console.error('❌ Error creando pedido:', error);
+    
+    // Manejo de errores de validación de Mongoose para dar mensajes más claros
+    if (error.name === 'ValidationError') {
+      const errores = Object.values(error.errors).map((err: any) => err.message).join(', ');
+      return NextResponse.json({ message: `Datos inválidos: ${errores}` }, { status: 400 });
+    }
+
     return NextResponse.json({ message: 'Error interno del servidor' }, { status: 500 });
   }
 }

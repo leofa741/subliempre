@@ -32,17 +32,20 @@ export default function CatalogoPage() {
   const WHATSAPP_NUMBER = '5491141461312';
 
   // ─────────────────────────────────────────────────────────────
-  // 🔹 CARGA DE PRODUCTOS CON PAGINACIÓN
+  // 🔹 CARGA DE PRODUCTOS (OPTIMIZADA PARA TIEMPO REAL)
   // ─────────────────────────────────────────────────────────────
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`/api/public/productos?page=${currentPage}&limit=12&categoria=${filterCategory}`);
+        // ✅ 1. cache: 'no-store' obliga al navegador a pedir datos frescos a la base de datos
+        const res = await fetch(`/api/public/productos?page=${currentPage}&limit=12&categoria=${filterCategory}`, {
+          cache: 'no-store'
+        });
         const data = await res.json();
         if (data.success) {
           setProducts(data.productos);
-          setTotalPages(data.pagination.totalPages);
+        setTotalPages(data.pagination?.totalPages || 1);
         }
       } catch (error) {
         console.error('Error cargando catálogo:', error);
@@ -52,6 +55,21 @@ export default function CatalogoPage() {
     };
     
     fetchProducts();
+
+    // ✅ 2. Detector de visibilidad: Si el cliente tiene la página abierta y tú cambias un precio,
+    // al hacer clic nuevamente en la pestaña del navegador, los precios se actualizan al instante.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchProducts();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Limpieza del evento al desmontar el componente
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [currentPage, filterCategory]);
 
   // ─────────────────────────────────────────────────────────────
@@ -133,7 +151,7 @@ export default function CatalogoPage() {
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         
-        <div className="text-center mt-50 mb-12">
+        <div className="text-center mt-40 mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-rose-200 shadow-sm mb-4 backdrop-blur-sm">
             <FaMagic className="text-rose-400" />
             <span className="text-xs font-bold uppercase tracking-widest text-stone-600">Catálogo Online</span>
@@ -270,7 +288,7 @@ export default function CatalogoPage() {
         </button>
       )}
 
-      {/* Drawer / Modal del Carrito (sin cambios en la lógica, solo se mantiene) */}
+      {/* Drawer / Modal del Carrito */}
       {isCartOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={() => setIsCartOpen(false)} />

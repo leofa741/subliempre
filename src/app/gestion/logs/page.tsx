@@ -5,6 +5,8 @@ import { authOptions } from '@/app/lib/auth';
 import connectDB from "@/app/lib/mongoose";
 import LogModel from "@/app/models/LogLogin";
 import FilterForm from './app/gestion/logins/components/FilterForm';
+import { FaArrowLeft } from 'react-icons/fa';
+import Link from 'next/link';
 // Nota: Asegúrate de que esta ruta de importación sea correcta en tu estructura de carpetas
 
 
@@ -28,28 +30,28 @@ const theme = {
 // Helper para badges de proveedor con estilo pastel
 const getProviderBadge = (provider: string) => {
     const config: Record<string, { label: string; bg: string; text: string; border: string; dot: string }> = {
-        google: { 
-            label: "Google", 
-            bg: "bg-rose-50", 
-            text: "text-rose-700", 
-            border: "border-rose-200", 
-            dot: "bg-rose-400" 
+        google: {
+            label: "Google",
+            bg: "bg-rose-50",
+            text: "text-rose-700",
+            border: "border-rose-200",
+            dot: "bg-rose-400"
         },
-        credentials: { 
-            label: "Email / Contraseña", 
-            bg: "bg-blue-50", 
-            text: "text-blue-700", 
-            border: "border-blue-200", 
-            dot: "bg-blue-400" 
+        credentials: {
+            label: "Email / Contraseña",
+            bg: "bg-blue-50",
+            text: "text-blue-700",
+            border: "border-blue-200",
+            dot: "bg-blue-400"
         },
     };
-    
-    const style = config[provider] || { 
-        label: provider, 
-        bg: "bg-stone-100", 
-        text: "text-stone-700", 
-        border: "border-stone-200", 
-        dot: "bg-stone-400" 
+
+    const style = config[provider] || {
+        label: provider,
+        bg: "bg-stone-100",
+        text: "text-stone-700",
+        border: "border-stone-200",
+        dot: "bg-stone-400"
     };
 
     return (
@@ -137,11 +139,11 @@ export default async function LoginsPage({
                                 </svg>
                                 <span className="text-[10px] tracking-[0.25em] uppercase text-stone-600 font-bold">Auditoría de Seguridad</span>
                             </div>
-                            
+
                             <h1 className="text-3xl sm:text-4xl font-serif font-medium text-stone-800 mb-2">
                                 Bitácora de Accesos
                             </h1>
-                            
+
                             <p className={`${theme.textSecondary} text-base font-light`}>
                                 Registros de inicio de sesión • Administrado por <span className={`${theme.textAccent} font-medium`}>{userName}</span>
                             </p>
@@ -160,17 +162,14 @@ export default async function LoginsPage({
                         </div>
                     </div>
 
-                    {/* 🔗 Breadcrumb elegante */}
-                    <nav className="mt-6 flex items-center text-sm">
-                        <a href="/gestion" className={`${theme.textSecondary} hover:${theme.textAccent} transition-colors flex items-center gap-1.5`}>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                            </svg>
-                            Gestión
-                        </a>
-                        <span className={`${theme.textSecondary} mx-2`}>/</span>
-                        <span className="text-stone-800 font-medium">Bitácora</span>
-                    </nav>
+          
+                    <Link
+                        href="/gestion/clientes"
+                        className="group inline-flex items-center gap-2 text-rose-600 hover:text-rose-700 transition-colors mb-6"
+                    >
+                        <FaArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                        <span className="text-sm font-medium">Volver al panel</span>
+                    </Link>
                 </header>
 
                 {/* 🔍 Filtros - Card Premium */}
@@ -214,8 +213,8 @@ export default async function LoginsPage({
                                 </thead>
                                 <tbody className="divide-y divide-rose-100">
                                     {logs.map((log: any, index: number) => (
-                                        <tr 
-                                            key={log._id} 
+                                        <tr
+                                            key={log._id}
                                             className={`group transition-all duration-300 ${theme.bgCardHover}`}
                                         >
                                             <td className="py-5 px-6">
@@ -238,7 +237,7 @@ export default async function LoginsPage({
                                                 </div>
                                             </td>
                                             <td className="py-5 px-6 text-right">
-                                                <button 
+                                                <button
                                                     className="opacity-0 group-hover:opacity-100 transition-all duration-300 p-2.5 rounded-xl hover:bg-white hover:shadow-md text-stone-400 hover:text-rose-500"
                                                     title="Ver detalles completos"
                                                 >
@@ -264,7 +263,7 @@ export default async function LoginsPage({
                             <span className="text-stone-800 font-bold">{Math.min(currentPage * PAGE_SIZE, totalLogs)}</span> de{" "}
                             <span className="text-stone-800 font-bold">{totalLogs}</span> registros
                         </span>
-                        
+
                         <div className="flex items-center gap-2">
                             {currentPage > 1 ? (
                                 <a
@@ -300,15 +299,15 @@ export default async function LoginsPage({
                                     } else {
                                         pageNum = currentPage - 2 + i;
                                     }
-                                    
+
                                     return (
                                         <a
                                             key={pageNum}
                                             href={buildUrl(pageNum)}
                                             className={`
                                                 w-10 h-10 flex items-center justify-center rounded-xl text-sm font-bold transition-all duration-300
-                                                ${currentPage === pageNum 
-                                                    ? 'bg-gradient-to-r from-rose-400 to-pink-500 text-white shadow-lg shadow-rose-200/50 scale-105' 
+                                                ${currentPage === pageNum
+                                                    ? 'bg-gradient-to-r from-rose-400 to-pink-500 text-white shadow-lg shadow-rose-200/50 scale-105'
                                                     : 'text-stone-500 hover:text-stone-800 hover:bg-white hover:border hover:border-rose-200'
                                                 }
                                             `}

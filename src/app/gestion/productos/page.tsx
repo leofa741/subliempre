@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import Swal from 'sweetalert2';
 import { 
   FaBoxOpen, FaPlus, FaEdit, FaTrash, FaExclamationTriangle, 
-  FaCheckCircle, FaArrowRight, FaSearch, FaFilter 
+  FaCheckCircle, FaArrowRight, FaSearch, FaFilter, FaStar
 } from 'react-icons/fa';
 
 interface Product {
@@ -32,6 +32,7 @@ export default function DashboardProductosPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -46,7 +47,7 @@ export default function DashboardProductosPage() {
         icon: 'error',
         title: 'Acceso denegado',
         text: 'No tienes permisos para acceder a esta sección.',
-        confirmButtonColor: '#BE185D', // Rose-700
+        confirmButtonColor: '#BE185D',
         confirmButtonText: 'Entendido'
       });
       router.push('/');
@@ -80,19 +81,63 @@ export default function DashboardProductosPage() {
     }
   };
 
+  // ✅ NUEVA FUNCIÓN: Alternar estado "Destacado"
+  const handleToggleDestacado = async (id: string, currentStatus: boolean) => {
+    setTogglingId(id);
+    try {
+      const res = await fetch(`/api/gestion/productos?id=${id}`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.user?.token}` 
+        },
+        body: JSON.stringify({ destacado: !currentStatus })
+      });
+
+      if (res.ok) {
+        // Actualizamos el estado local inmediatamente para que se vea el cambio sin recargar
+        setProducts(prev => prev.map(p => 
+          p._id === id ? { ...p, destacado: !currentStatus } : p
+        ));
+        
+        Swal.fire({
+          icon: 'success',
+          title: currentStatus ? 'Quitado de destacados' : '¡Producto destacado!',
+          text: currentStatus ? 'Ya no aparecerá en la sección de favoritos.' : 'Ahora aparecerá en la página de inicio.',
+          timer: 2000,
+          showConfirmButton: false,
+          background: '#FFFBF7',
+          color: '#44403C'
+        });
+      } else {
+        throw new Error('Error al actualizar');
+      }
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo actualizar el estado del producto.',
+        confirmButtonColor: '#BE185D',
+        background: '#FFFBF7',
+        color: '#44403C'
+      });
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   const handleDelete = async (id: string, nombre: string) => {
-    // ✅ Confirmación con SweetAlert2
     const result = await Swal.fire({
       title: '¿Estás segura?',
       text: `¿Deseas eliminar "${nombre}"? Esta acción no se puede deshacer.`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#BE185D', // Rose-700
-      cancelButtonColor: '#9CA3AF', // Gray-400
+      confirmButtonColor: '#BE185D',
+      cancelButtonColor: '#9CA3AF',
       confirmButtonText: 'Sí, eliminar',
       cancelButtonText: 'Cancelar',
-      background: '#FFFBF7', // Fondo cremoso
-      color: '#44403C' // Stone-700
+      background: '#FFFBF7',
+      color: '#44403C'
     });
 
     if (!result.isConfirmed) return;
@@ -108,9 +153,11 @@ export default function DashboardProductosPage() {
           icon: 'success',
           title: '¡Eliminado!',
           text: 'El producto ha sido eliminado correctamente.',
-          confirmButtonColor: '#047857', // Emerald-600
+          confirmButtonColor: '#047857',
           background: '#FFFBF7',
-          color: '#44403C'
+          color: '#44403C',
+          timer: 2000,
+          showConfirmButton: false
         });
         fetchProducts();
       } else {
@@ -160,9 +207,9 @@ export default function DashboardProductosPage() {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8">
-      <div className="max-w-7xl mx-auto pt-8 space-y-8">
+      <div className="max-w-7xl mx-auto mt-50 pt-8 space-y-8">
         
-        <div className="flex flex-col lg:flex-row lg:items-center mt-50 justify-between gap-6">
+        <div className="flex flex-col lg:flex-row lg:items-center mt-10 lg:mt-0 justify-between gap-6">
           <div>
             <a href="/gestion" className="inline-flex items-center gap-1.5 text-rose-600 hover:text-rose-700 transition-colors mb-4">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -280,7 +327,7 @@ export default function DashboardProductosPage() {
                             <p className="font-bold text-stone-800 text-base">{prod.nombre}</p>
                             <p className="text-xs text-stone-500 truncate max-w-[200px]">{prod.descripcion}</p>
                             <div className="flex gap-2 mt-1">
-                              {prod.destacado && <span className="text-[9px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">DESTACADO</span>}
+                              {prod.destacado && <span className="text-[9px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded flex items-center gap-1"><FaStar className="w-2.5 h-2.5" /> DESTACADO</span>}
                               {prod.nuevo && <span className="text-[9px] font-bold text-rose-600 bg-rose-100 px-1.5 py-0.5 rounded">NUEVO</span>}
                             </div>
                           </div>
@@ -319,20 +366,35 @@ export default function DashboardProductosPage() {
                         )}
                       </td>
                       <td className="px-6 py-5 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                          
+                          {/* ✅ BOTÓN PARA DESTACAR / QUITAR DESTACADO */}
+                          <button 
+                            onClick={() => handleToggleDestacado(prod._id, prod.destacado)}
+                            disabled={togglingId === prod._id}
+                            className={`p-2.5 rounded-xl hover:bg-white hover:shadow-md transition-all ${
+                              prod.destacado 
+                                ? 'text-amber-500 hover:text-amber-600 hover:bg-amber-50' 
+                                : 'text-stone-300 hover:text-amber-400 hover:bg-amber-50'
+                            }`}
+                            title={prod.destacado ? "Quitar de destacados" : "Marcar como destacado"}
+                          >
+                            <FaStar className={`w-5 h-5 ${togglingId === prod._id ? 'animate-pulse' : ''}`} />
+                          </button>
+
                           <button 
                             onClick={() => router.push(`/gestion/productos/editar/${prod._id}`)} 
                             className="p-2.5 rounded-xl hover:bg-white hover:shadow-md text-stone-400 hover:text-blue-500 transition-all" 
                             title="Editar"
                           >
-                            <FaEdit />
+                            <FaEdit className="w-5 h-5" />
                           </button>
                           <button 
                             onClick={() => handleDelete(prod._id, prod.nombre)} 
                             className="p-2.5 rounded-xl hover:bg-white hover:shadow-md text-stone-400 hover:text-red-500 transition-all" 
                             title="Eliminar"
                           >
-                            <FaTrash />
+                            <FaTrash className="w-5 h-5" />
                           </button>
                         </div>
                       </td>

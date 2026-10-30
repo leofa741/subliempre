@@ -1,18 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { toast } from 'react-toastify';
 import { 
   FaArrowLeft, FaPlus, FaTrash, FaUser, FaPhone, 
-  FaCalendarAlt, FaStickyNote, FaCalculator, FaCheckCircle 
+  FaCalendarAlt, FaStickyNote, FaCalculator, FaCheckCircle, FaSearch, FaTimes
 } from 'react-icons/fa';
 
+// ✅ CORREGIDO: La interfaz refleja los campos reales que vienen de la API
 interface Product {
   _id: string;
   nombre: string;
   precioFinal: number;
+}
+
+interface ClientOption {
+  _id: string;
+  nombre: string;
+  apellido: string;
+  telefono: string;
+  displayName: string;
 }
 
 interface OrderItem {
@@ -26,9 +35,11 @@ interface OrderItem {
 export default function NuevoPedidoPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchContainerRef = useRef<HTMLDivElement>(null);
   
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [availableClients, setAvailableClients] = useState<ClientOption[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   // Estado del Cliente
@@ -37,16 +48,31 @@ export default function NuevoPedidoPage() {
   const [deliveryDate, setDeliveryDate] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Estado del Pedido
+  // Estado del Pedido y Búsqueda de Productos
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
+  const [productSearch, setProductSearch] = useState('');
   const [selectedProductId, setSelectedProductId] = useState('');
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
   const [itemQuantity, setItemQuantity] = useState<number>(1);
   
   // Estado Financiero
   const [seña, setSeña] = useState<number>(0);
 
   // ─────────────────────────────────────────────────────────────
-  // 🔹 CARGA DE PRODUCTOS DISPONIBLES
+  // 🔹 CERRAR DROPDOWN AL HACER CLIC FUERA
+  // ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setShowProductDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // ─────────────────────────────────────────────────────────────
+  // 🔹 CARGA DE DATOS (Productos y Clientes)
   // ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -54,47 +80,105 @@ export default function NuevoPedidoPage() {
       return;
     }
 
-    const fetchProducts = async () => {
-    try {
-      const res = await fetch('/api/gestion/productos', {
-        headers: { 'Authorization': `Bearer ${session?.user?.token}` }
-      });
-      
-      // ✅ PROTECCIÓN: Si la API falla (404, 405, 500), no intentamos parsear JSON
-      if (!res.ok) {
-        throw new Error(`La API respondió con estado ${res.status}`);
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const token = session?.user?.token;
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        // 1. Cargar Productos
+        const prodRes = await fetch('/api/gestion/productos', { headers });
+        if (prodRes.ok) {
+          const prodData = await prodRes.json();
+          if (prodData.success) {
+            // ✅ CORRECCIÓN CLAVE: Mapeamos el campo 'precioFinalManual' a 'precioFinal'
+            // para que el filtro y el resto del código funcionen correctamente.
+            const productosMapeados = prodData.productos.map((p: any) => ({
+              _id: p._id,
+              nombre: p.nombre,
+              precioFinal: p.precioFinalManual || p.precioSugerido || 0
+            }));
+            
+            setAvailableProducts(productosMapeados.filter((p: Product) => p.precioFinal > 0));
+          }
+        } else {
+          console.error('Error al cargar productos:', prodRes.status);
+        }
+
+        // 2. Cargar Clientes
+        const clientRes = await fetch('/api/gestion/clientes?limite=500', { headers });
+        if (clientRes.ok) {
+          const clientData = await clientRes.json();
+          if (clientData.success) {
+            const formattedClients = clientData.clientes.map((c: any) => ({
+              _id: c._id,
+              nombre: c.nombre,
+              apellido: c.apellido,
+              telefono: c.telefono || '',
+              displayName: `${c.nombre} ${c.apellido}`.trim()
+            }));
+            setAvailableClients(formattedClients);
+          }
+        }
+      } catch (error) {
+        console.error('Error cargando datos:', error);
+        toast.error('No se pudieron cargar los datos necesarios.', {
+          style: { background: '#FFF1F2', color: '#BE185D', border: '1px solid #FECDD3' }
+        });
+      } finally {
+        setIsLoading(false);
       }
-      
-      const data = await res.json();
-      if (data.success) {
-        setAvailableProducts(data.productos.filter((p: Product) => p.precioFinal > 0));
-      }
-    } catch (error) {
-      console.error('Error cargando productos:', error);
-      toast.error('No se pudieron cargar los productos. Verifica la API.', {
-        style: { background: '#FFF1F2', color: '#BE185D', border: '1px solid #FECDD3' }
-      });
-    } finally {
-      setLoadingProducts(false);
-    }
-  };
+    };
 
     if (status === 'authenticated') {
-      fetchProducts();
+      fetchData();
     }
   }, [status, session, router]);
 
   // ─────────────────────────────────────────────────────────────
-  // 🔹 CÁLCULOS EN TIEMPO REAL
+  // 🔹 HANDLERS DEL CLIENTE (Autocompletado)
   // ─────────────────────────────────────────────────────────────
-  const totalPedido = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
-  const saldoPendiente = Math.max(0, totalPedido - seña);
+  const handleClientNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setClientName(value);
+    
+    const matchedClient = availableClients.find(
+      c => c.displayName.toLowerCase() === value.toLowerCase()
+    );
+    
+    if (matchedClient) {
+      setClientPhone(matchedClient.telefono || '');
+    }
+  };
 
   // ─────────────────────────────────────────────────────────────
-  // 🔹 HANDLERS DE PRODUCTOS
+  // 🔹 HANDLERS DE PRODUCTOS (Búsqueda personalizada confiable)
   // ─────────────────────────────────────────────────────────────
+  const handleProductSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setProductSearch(value);
+    setSelectedProductId('');
+    setShowProductDropdown(true);
+  };
+
+  const selectProduct = (product: Product) => {
+    setProductSearch(product.nombre);
+    setSelectedProductId(product._id);
+    setShowProductDropdown(false);
+  };
+
+  // Filtrar productos en tiempo real
+  const filteredProducts = productSearch 
+    ? availableProducts.filter(p => p.nombre.toLowerCase().includes(productSearch.toLowerCase()))
+    : availableProducts;
+
   const addProductToOrder = () => {
-    if (!selectedProductId || itemQuantity < 1) return;
+    if (!selectedProductId || itemQuantity < 1) {
+      toast.warning('Selecciona un producto de la lista desplegable', {
+        style: { background: '#FFFBEB', color: '#92400E', border: '1px solid #FCD34D' }
+      });
+      return;
+    }
     
     const product = availableProducts.find(p => p._id === selectedProductId);
     if (!product) return;
@@ -102,13 +186,11 @@ export default function NuevoPedidoPage() {
     const existingItemIndex = orderItems.findIndex(item => item.productoId === selectedProductId);
 
     if (existingItemIndex >= 0) {
-      // Si ya existe, sumamos la cantidad
       const updatedItems = [...orderItems];
       updatedItems[existingItemIndex].cantidad += itemQuantity;
       updatedItems[existingItemIndex].subtotal = updatedItems[existingItemIndex].cantidad * updatedItems[existingItemIndex].precioUnitario;
       setOrderItems(updatedItems);
     } else {
-      // Si es nuevo, lo agregamos
       setOrderItems(prev => [
         ...prev,
         {
@@ -121,7 +203,8 @@ export default function NuevoPedidoPage() {
       ]);
     }
     
-    // Resetear selector
+    // Resetear campos de producto
+    setProductSearch('');
     setSelectedProductId('');
     setItemQuantity(1);
   };
@@ -139,8 +222,11 @@ export default function NuevoPedidoPage() {
   };
 
   // ─────────────────────────────────────────────────────────────
-  // 🔹 ENVÍO DEL FORMULARIO
+  // 🔹 CÁLCULOS Y ENVÍO
   // ─────────────────────────────────────────────────────────────
+  const totalPedido = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
+  const saldoPendiente = Math.max(0, totalPedido - seña);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -204,7 +290,7 @@ export default function NuevoPedidoPage() {
   const formatPrice = (amount: number) => 
     new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(amount);
 
-  if (status === 'loading' || loadingProducts) {
+  if (status === 'loading' || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30">
         <div className="flex flex-col items-center gap-4">
@@ -212,7 +298,7 @@ export default function NuevoPedidoPage() {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <span className="text-stone-500 font-medium animate-pulse">Cargando catálogo...</span>
+          <span className="text-stone-500 font-medium animate-pulse">Cargando datos...</span>
         </div>
       </div>
     );
@@ -220,7 +306,7 @@ export default function NuevoPedidoPage() {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8">
-      <div className="max-w-6xl mt-50 mx-auto">
+      <div className="max-w-6xl mt-20 mx-auto">
         
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
@@ -248,15 +334,31 @@ export default function NuevoPedidoPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">Nombre Completo *</label>
-                  <input type="text" value={clientName} onChange={e => setClientName(e.target.value)} required
+                  <input 
+                    type="text" 
+                    list="clientes-sugeridos"
+                    value={clientName} 
+                    onChange={handleClientNameChange} 
+                    required
                     className="w-full px-4 py-3.5 rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all"
-                    placeholder="Ej: María González" />
+                    placeholder="Ej: María González" 
+                  />
+                  <datalist id="clientes-sugeridos">
+                    {availableClients.map(client => (
+                      <option key={client._id} value={client.displayName} />
+                    ))}
+                  </datalist>
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">Teléfono / WhatsApp *</label>
-                  <input type="tel" value={clientPhone} onChange={e => setClientPhone(e.target.value)} required
+                  <input 
+                    type="tel" 
+                    value={clientPhone} 
+                    onChange={e => setClientPhone(e.target.value)} 
+                    required
                     className="w-full px-4 py-3.5 rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all"
-                    placeholder="Ej: 11 1234 5678" />
+                    placeholder="Ej: 11 1234 5678" 
+                  />
                 </div>
               </div>
             </div>
@@ -267,23 +369,83 @@ export default function NuevoPedidoPage() {
                 <FaCalculator className="text-rose-400" /> Productos del Pedido
               </h2>
               
-              <div className="flex flex-col sm:flex-row gap-3 mb-6 p-4 rounded-2xl bg-rose-50/50 border border-rose-100">
-                <select value={selectedProductId} onChange={e => setSelectedProductId(e.target.value)}
-                  className="flex-1 px-4 py-3 rounded-xl bg-white border border-rose-200 text-stone-800 focus:outline-none focus:ring-2 focus:ring-pink-200">
-                  <option value="">Seleccionar producto...</option>
-                  {availableProducts.map(prod => (
-                    <option key={prod._id} value={prod._id}>
-                      {prod.nombre} - {formatPrice(prod.precioFinal)}
-                    </option>
-                  ))}
-                </select>
+              <div className="flex flex-col sm:flex-row gap-3 mb-6 p-4 rounded-2xl bg-rose-50/50 border border-rose-100" ref={searchContainerRef}>
+                {/* Buscador de productos personalizado */}
+                <div className="flex-1 relative">
+                  <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
+                  <input 
+                    type="text"
+                    value={productSearch}
+                    onChange={handleProductSearchChange}
+                    onFocus={() => setShowProductDropdown(true)}
+                    placeholder="Escribí para buscar en el catálogo..."
+                    className={`w-full pl-11 pr-10 py-3 rounded-xl bg-white border text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 transition-all ${
+                      selectedProductId 
+                        ? 'border-emerald-300 focus:ring-emerald-200 focus:border-emerald-400' 
+                        : 'border-rose-200 focus:ring-pink-200 focus:border-pink-300'
+                    }`}
+                  />
+                  {productSearch && (
+                    <button 
+                      type="button"
+                      onClick={() => { setProductSearch(''); setSelectedProductId(''); }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-rose-500 transition-colors"
+                    >
+                      <FaTimes />
+                    </button>
+                  )}
+
+                  {/* Dropdown personalizado que se muestra al escribir */}
+                  {showProductDropdown && (
+                    <div className="absolute z-50 w-full mt-2 bg-white border border-rose-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                      {filteredProducts.length > 0 ? (
+                        filteredProducts.map(prod => (
+                          <button
+                            key={prod._id}
+                            type="button"
+                            onClick={() => selectProduct(prod)}
+                            className="w-full text-left px-4 py-3 hover:bg-rose-50 transition-colors flex justify-between items-center border-b border-rose-50 last:border-0"
+                          >
+                            <span className="font-medium text-stone-800">{prod.nombre}</span>
+                            <span className="text-sm font-bold text-rose-600">{formatPrice(prod.precioFinal)}</span>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-4 py-3 text-stone-500 text-sm text-center">
+                          No se encontraron productos
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Feedback visual de selección exitosa */}
+                  {selectedProductId && (
+                    <p className="text-[10px] text-emerald-600 mt-1.5 ml-1 flex items-center gap-1 font-medium">
+                      <FaCheckCircle className="w-3 h-3" /> Producto seleccionado correctamente
+                    </p>
+                  )}
+                </div>
+                
                 <div className="flex items-center gap-2 bg-white rounded-xl border border-rose-200 px-3">
                   <span className="text-stone-400 text-sm">Cant:</span>
-                  <input type="number" min="1" value={itemQuantity} onChange={e => setItemQuantity(Number(e.target.value))}
-                    className="w-16 py-3 text-center text-stone-800 font-bold focus:outline-none" />
+                  <input 
+                    type="number" 
+                    min="1" 
+                    value={itemQuantity} 
+                    onChange={e => {
+                      const val = Number(e.target.value);
+                      setItemQuantity(isNaN(val) || val < 1 ? 1 : val);
+                    }}
+                    className="w-16 py-3 text-center text-stone-800 font-bold focus:outline-none" 
+                  />
                 </div>
-                <button type="button" onClick={addProductToOrder} disabled={!selectedProductId}
-                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                
+                <button 
+                  type="button" 
+                  onClick={addProductToOrder} 
+                  disabled={!selectedProductId}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:from-stone-300 disabled:to-stone-400 flex items-center justify-center gap-2"
+                >
                   <FaPlus /> Agregar
                 </button>
               </div>
@@ -367,7 +529,7 @@ export default function NuevoPedidoPage() {
                 {/* Input de Seña */}
                 <div className="mb-6 p-4 rounded-2xl bg-amber-50/50 border border-amber-200">
                   <label className="block text-xs font-bold uppercase tracking-wider text-amber-700 mb-2">Seña / Adelanto ($)</label>
-                  <input type="number" min="0" value={seña} onChange={e => setSeña(Number(e.target.value))}
+                  <input type="number" min="0" value={seña} onChange={e => setSeña(Number(e.target.value) || 0)}
                     className="w-full px-4 py-3 rounded-xl bg-white border border-amber-300 text-stone-800 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-amber-200 focus:border-amber-400 transition-all"
                     placeholder="0" />
                   <p className="text-[10px] text-amber-600 mt-2 text-center">

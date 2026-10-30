@@ -19,6 +19,8 @@ export interface IProducto extends Document {
   precioFinalManual?: number;
   imagen?: string;
   activo: boolean;
+  destacado: boolean; // ✅ AGREGADO
+  nuevo: boolean;     // ✅ AGREGADO
   // Campos calculados explícitos
   costoTotalInsumos: number;
   costoManoObra: number;
@@ -44,11 +46,14 @@ const ProductoSchema = new Schema<IProducto>(
     valorHoraManoDeObra: { type: Number, default: 0 },
     margenGananciaPorcentaje: { type: Number, required: true, min: 0 },
     precioFinalManual: { type: Number },
-    imagen: { type: String, default: '' }, // ✅ Campo para la URL de Cloudinary
-    
+    imagen: { type: String, default: '' },
     activo: { type: Boolean, default: true },
     
-    // ✅ Campos calculados explícitos para que Mongoose los guarde en la BD
+    // ✅ CAMPOS AGREGADOS PARA QUE FUNCIONE EL DESTACADO
+    destacado: { type: Boolean, default: false },
+    nuevo: { type: Boolean, default: false },
+    
+    // Campos calculados explícitos
     costoTotalInsumos: { type: Number, default: 0 },
     costoManoObra: { type: Number, default: 0 },
     costoTotalProduccion: { type: Number, default: 0 },

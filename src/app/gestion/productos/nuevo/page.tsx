@@ -47,7 +47,7 @@ export default function NuevoProductoPage() {
     // Estado del Producto
     const [nombre, setNombre] = useState('');
     const [descripcion, setDescripcion] = useState('');
-    const [categoria, setCategoria] = useState('sublimacion');
+    const [categoria, setCategoria] = useState(''); // ✅ Ahora empieza vacío para forzar la elección/escritura
 
     // Estado de la Receta (Insumos)
     const [insumosSeleccionados, setInsumosSeleccionados] = useState<InsumoSeleccionado[]>([]);
@@ -176,13 +176,13 @@ export default function NuevoProductoPage() {
             const payload = {
                 nombre,
                 descripcion,
-                categoria,
+                categoria, // ✅ Ahora guarda exactamente lo que escribió o seleccionó
                 insumos: insumosSeleccionados.map(i => ({ insumoId: i.insumoId, cantidadUsada: i.cantidad })),
                 tiempoManoDeObraMinutos: Number(tiempoMinutos),
                 valorHoraManoDeObra: Number(valorHora),
                 margenGananciaPorcentaje: Number(margenGanancia),
                 precioFinalManual: calculos.precioFinal,
-                imagen: imageUrl, // ✅ URL de Cloudinary
+                imagen: imageUrl,
             };
 
             const res = await fetch('/api/gestion/productos', {
@@ -253,15 +253,28 @@ export default function NuevoProductoPage() {
                                     <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">Descripción</label>
                                     <textarea value={descripcion} onChange={e => setDescripcion(e.target.value)} required rows={3} className="w-full px-4 py-3.5 rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all resize-none" placeholder="Detalles del producto..." />
                                 </div>
+                                
+                                {/* ✅ CAMBIO: Input con Datalist para categorías dinámicas */}
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">Categoría</label>
-                                    <select value={categoria} onChange={e => setCategoria(e.target.value)} className="w-full px-4 py-3.5 rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all">
-                                        <option value="sublimacion">Sublimación</option>
-                                        <option value="remeras">Remeras Personalizadas</option>
-                                        <option value="cumpleaños">Decoración Cumpleaños</option>
-                                        <option value="tazas">Tazas & Mugs</option>
-                                        <option value="accesorios">Accesorios</option>
-                                    </select>
+                                    <input 
+                                        list="categorias-sugeridas"
+                                        value={categoria} 
+                                        onChange={e => setCategoria(e.target.value)} 
+                                        required
+                                        className="w-full px-4 py-3.5 rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all"
+                                        placeholder="Ej: Tazas, Remeras, o escribe una nueva..."
+                                    />
+                                    <datalist id="categorias-sugeridas">
+                                        <option value="Sublimación" />
+                                        <option value="Remeras Personalizadas" />
+                                        <option value="Decoración Cumpleaños" />
+                                        <option value="Tazas & Mugs" />
+                                        <option value="Accesorios" />
+                                    </datalist>
+                                    <p className="text-[10px] text-stone-400 mt-1.5 ml-1 flex items-center gap-1">
+                                        <span>💡</span> Selecciona una de la lista o escribe una nueva categoría.
+                                    </p>
                                 </div>
                                 
                                 {/* ✅ Selector de Imagen */}

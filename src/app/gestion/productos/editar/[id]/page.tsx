@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { toast } from 'react-toastify';
 import { useSession } from 'next-auth/react';
 import { FaImage, FaUpload, FaTimes, FaArrowLeft } from 'react-icons/fa';
 import Swal from 'sweetalert2';
@@ -42,7 +41,7 @@ interface ProductoExistente {
     nombre: string;
     descripcion: string;
     categoria: string;
-    insumos: InsumoSeleccionado[];
+    insumos: any[]; // Cambiado a any[] para permitir el mapeo flexible desde la BD
     tiempoManoDeObraMinutos: number;
     valorHoraManoDeObra: number;
     margenGananciaPorcentaje: number;
@@ -65,7 +64,7 @@ export default function EditarProductoPage() {
     // Estado del Producto
     const [nombre, setNombre] = useState('');
     const [descripcion, setDescripcion] = useState('');
-    const [categoria, setCategoria] = useState('sublimacion');
+    const [categoria, setCategoria] = useState('');
     const [destacado, setDestacado] = useState(false);
     const [nuevo, setNuevo] = useState(false);
 
@@ -88,7 +87,7 @@ export default function EditarProductoPage() {
     // ─────────────────────────────────────────────────────────────
     // 🔹 CARGA DE DATOS INICIALES
     // ─────────────────────────────────────────────────────────────
-     useEffect(() => {
+    useEffect(() => {
         if (status === 'loading') return;
         if (status === 'unauthenticated') { router.push('/login'); return; }
 
@@ -106,15 +105,13 @@ export default function EditarProductoPage() {
                     headers: { 'Authorization': `Bearer ${session?.user?.token}` }
                 });
 
-                // ✅ PROTECCIÓN: Verificar que la respuesta sea exitosa antes de parsear JSON
                 if (!productoRes.ok) {
                     throw new Error(`Error del servidor: ${productoRes.status}`);
                 }
 
-                // ✅ PROTECCIÓN: Verificar que realmente sea JSON y no HTML (404)
                 const contentType = productoRes.headers.get("content-type");
                 if (!contentType || !contentType.includes("application/json")) {
-                    throw new Error("La API no devolvió JSON. Revisa que la ruta /api/gestion/productos/[id]/route.ts exista.");
+                    throw new Error("La API no devolvió JSON. Revisa que la ruta exista.");
                 }
 
                 const productoData = await productoRes.json();
@@ -127,7 +124,18 @@ export default function EditarProductoPage() {
                     setCategoria(prod.categoria);
                     setDestacado(prod.destacado || false);
                     setNuevo(prod.nuevo || false);
-                    setInsumosSeleccionados(prod.insumos || []);
+                    
+                    // ✅ CORRECCIÓN CLAVE: Mapear las propiedades de la BD al formato que espera el formulario
+                    const insumosMapeados = (prod.insumos || []).map((ins: any) => ({
+                        insumoId: ins.insumoId,
+                        nombre: ins.nombre,
+                        unidadMedida: ins.unidadMedida || 'unidad',
+                        costoUnitario: ins.costoUnitarioCalculado || 0,
+                        cantidad: ins.cantidadUsada,
+                        subtotal: ins.subtotalCalculado || 0
+                    }));
+                    setInsumosSeleccionados(insumosMapeados);
+
                     setTiempoMinutos(prod.tiempoManoDeObraMinutos || 15);
                     setValorHora(prod.valorHoraManoDeObra || 5000);
                     setMargenGanancia(prod.margenGananciaPorcentaje || 50);
@@ -157,7 +165,8 @@ export default function EditarProductoPage() {
     // 🔹 CÁLCULOS EN TIEMPO REAL
     // ─────────────────────────────────────────────────────────────
     const calculos = useMemo(() => {
-        const costoInsumos = insumosSeleccionados.reduce((sum, item) => sum + item.subtotal, 0);
+        // ✅ Protección: asegurar que subtotal sea un número válido
+        const costoInsumos = insumosSeleccionados.reduce((sum, item) => sum + (Number(item.subtotal) || 0), 0);
         const tiempoHoras = (Number(tiempoMinutos) || 0) / 60;
         const costoManoObra = tiempoHoras * (Number(valorHora) || 0);
         const costoTotalProduccion = costoInsumos + costoManoObra;
@@ -173,7 +182,7 @@ export default function EditarProductoPage() {
     }, [insumosSeleccionados, tiempoMinutos, valorHora, margenGanancia, precioManual]);
 
     // ─────────────────────────────────────────────────────────────
-    //  HANDLERS
+    // 🔹 HANDLERS
     // ─────────────────────────────────────────────────────────────
     const agregarInsumo = () => {
         if (!selectedInsumoId || !cantidadInsumo) return;
@@ -232,7 +241,6 @@ export default function EditarProductoPage() {
         try {
             let imageUrl = producto?.imagen || '';
             
-            // Subir nueva imagen si se seleccionó una
             if (imageFile) {
                 setUploadingImage(true);
                 const formDataImg = new FormData();
@@ -303,8 +311,10 @@ export default function EditarProductoPage() {
         }
     };
 
-    const formatPrice = (amount: number) =>
-        new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(amount);
+    const formatPrice = (amount: number) => {
+        if (!amount || isNaN(amount)) return '$ 0';
+        return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(amount);
+    };
 
     if (status === 'loading' || loadingPage) {
         return (
@@ -344,15 +354,28 @@ export default function EditarProductoPage() {
                                     <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">Descripción</label>
                                     <textarea value={descripcion} onChange={e => setDescripcion(e.target.value)} required rows={3} className="w-full px-4 py-3.5 rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all resize-none" />
                                 </div>
+                                
+                                {/* ✅ Input con Datalist para categorías dinámicas */}
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">Categoría</label>
-                                    <select value={categoria} onChange={e => setCategoria(e.target.value)} className="w-full px-4 py-3.5 rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all">
-                                        <option value="sublimacion">Sublimación</option>
-                                        <option value="remeras">Remeras Personalizadas</option>
-                                        <option value="cumpleaños">Decoración Cumpleaños</option>
-                                        <option value="tazas">Tazas & Mugs</option>
-                                        <option value="accesorios">Accesorios</option>
-                                    </select>
+                                    <input 
+                                        list="categorias-sugeridas"
+                                        value={categoria} 
+                                        onChange={e => setCategoria(e.target.value)} 
+                                        required
+                                        className="w-full px-4 py-3.5 rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all"
+                                        placeholder="Ej: Tazas, Remeras, o escribe una nueva..."
+                                    />
+                                    <datalist id="categorias-sugeridas">
+                                        <option value="Sublimación" />
+                                        <option value="Remeras Personalizadas" />
+                                        <option value="Decoración Cumpleaños" />
+                                        <option value="Tazas & Mugs" />
+                                        <option value="Accesorios" />
+                                    </datalist>
+                                    <p className="text-[10px] text-stone-400 mt-1.5 ml-1 flex items-center gap-1">
+                                        <span>💡</span> Selecciona una de la lista o escribe una nueva categoría.
+                                    </p>
                                 </div>
                                 
                                 <div>

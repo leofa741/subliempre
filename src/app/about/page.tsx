@@ -150,14 +150,14 @@ export default function AboutPage() {
 
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <Link
-                href="/productos"
+                href="/catalogo"
                 className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 text-white font-bold text-sm tracking-wide transition-all duration-300 shadow-lg shadow-purple-300/40 hover:shadow-xl hover:shadow-pink-300/50 hover:scale-[1.02] active:scale-[0.98]"
               >
                 <span>Ver Productos</span>
                 <span className="group-hover:translate-x-1 transition-transform duration-300"><Icons.ArrowRight /></span>
               </Link>
               <Link
-                href="/contacto"
+                href="/contact"
                 className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl border-2 border-purple-200 bg-white/80 text-purple-700 font-bold text-sm tracking-wide transition-all duration-300 hover:border-pink-300 hover:bg-pink-50 hover:text-pink-600 active:scale-[0.98] shadow-sm"
               >
                 <span>Contactanos</span>
@@ -236,37 +236,7 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* ═══════════════════════════════════════════════════════
-            TESTIMONIOS - SUTILES Y ELEGANTES
-            ═══════════════════════════════════════════════════════ */}
-        <section className="mb-24 sm:mb-32">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-600 mb-4 block">Testimonios</span>
-            <h2 className="text-3xl sm:text-4xl font-black text-purple-900">Lo que dicen nuestros clientes</h2>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {testimonials.map((testimonial, index) => (
-              <div key={index} className="relative p-8 rounded-3xl bg-white/90 backdrop-blur-xl border-2 border-purple-200 shadow-lg shadow-purple-200/30 hover:shadow-xl hover:shadow-pink-200/40 transition-all duration-300">
-                <div className="absolute top-6 right-6 opacity-50">
-                  <Icons.Quote />
-                </div>
-                <p className="text-purple-800 leading-relaxed font-medium mb-6 relative z-10 italic text-lg">
-                  "{testimonial.text}"
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold text-sm">
-                    {testimonial.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="text-purple-900 font-bold text-sm">{testimonial.name}</p>
-                    <p className="text-purple-500 text-xs font-medium">{testimonial.role}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+     
 
         {/* ═══════════════════════════════════════════════════════
             CTA FINAL - LIMPIO Y ATRACTIVO
@@ -292,7 +262,7 @@ export default function AboutPage() {
                 <span>Consultar por WhatsApp</span>
               </a>
               <Link
-                href="/productos"
+                href="/catalogo"
                 className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl border-2 border-purple-300 bg-white text-purple-700 font-bold text-sm tracking-wide transition-all duration-300 hover:border-pink-400 hover:bg-pink-50 hover:text-pink-600 active:scale-[0.98] shadow-sm"
               >
                 <span>Ver Productos</span>
