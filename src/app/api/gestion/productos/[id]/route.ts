@@ -5,7 +5,7 @@ import InsumoModel from '@/app/models/Insumo';
 import { verifyAdmin } from '@/app/lib/auth';
 
 // ✅ GET: Obtener un solo producto por su ID
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const admin = await verifyAdmin(req);
         if (!admin) {
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         }
 
         await connectDB();
-        const producto = await ProductoModel.findById(params.id);
+        const producto = await ProductoModel.findById(await (await params).id);
 
         if (!producto) {
             return NextResponse.json({ message: 'Producto no encontrado' }, { status: 404 });
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 // ✅ PUT: Actualizar un producto por su ID
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const admin = await verifyAdmin(req);
         if (!admin) {
@@ -89,7 +89,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         if (nuevo !== undefined) updateData.nuevo = nuevo;
 
         const productoActualizado = await ProductoModel.findByIdAndUpdate(
-            params.id, { $set: updateData }, { new: true, runValidators: true }
+            await (await params).id, { $set: updateData }, { new: true, runValidators: true }
         );
 
         if (!productoActualizado) {
@@ -105,7 +105,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 }
 
 // ✅ DELETE: Eliminar un producto por su ID
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const admin = await verifyAdmin(req);
         if (!admin) {
@@ -113,7 +113,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         }
 
         await connectDB();
-        const productoEliminado = await ProductoModel.findByIdAndDelete(params.id);
+        const productoEliminado = await ProductoModel.findByIdAndDelete(await (await params).id);
 
         if (!productoEliminado) {
             return NextResponse.json({ message: 'Producto no encontrado' }, { status: 404 });

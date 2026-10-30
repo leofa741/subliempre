@@ -5,13 +5,15 @@ import { verifyAdmin } from '@/app/lib/auth';
 
 
 // ✅ GET: Obtener un solo cliente por su ID
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(  req: NextRequest, 
+  { params }: { params: Promise<{ id: string }> } // ✅ Cambiado a Promise
+)  {
   try {
     const admin = await verifyAdmin(req);
     if (!admin) return NextResponse.json({ message: 'No autorizado' }, { status: 403 });
 
     await connectDB();
-    const cliente = await ClienteModel.findById(params.id);
+    const cliente = await ClienteModel.findById(await (await params).id);
 
     if (!cliente) {
       return NextResponse.json({ message: 'Clienta no encontrada' }, { status: 404 });
@@ -25,7 +27,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const admin = await verifyAdmin(req);
     if (!admin) return NextResponse.json({ message: 'No autorizado' }, { status: 403 });
@@ -35,7 +37,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const { nombre, apellido, telefono, email, direccion, ciudad, notas } = body;
 
     const clienteActualizado = await ClienteModel.findByIdAndUpdate(
-      params.id,
+      await (await params).id,
       { nombre, apellido, telefono, email, direccion, ciudad, notas },
       { new: true, runValidators: true }
     );
@@ -54,7 +56,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const admin = await verifyAdmin(req);
     if (!admin) return NextResponse.json({ message: 'No autorizado' }, { status: 403 });
@@ -63,7 +65,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     
     // Soft delete (desactivar en lugar de borrar para no romper historial de pedidos)
     const cliente = await ClienteModel.findByIdAndUpdate(
-      params.id,
+      await (await params).id,
       { activo: false },
       { new: true }
     );

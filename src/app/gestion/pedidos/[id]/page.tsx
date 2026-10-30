@@ -223,11 +223,11 @@ export default function DetallePedidoPage() {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mt-50 mx-auto">
         
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-20 mb-8">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4  mb-8">
+          <div className="flex items-center  gap-4">
             <button onClick={() => router.back()} className="p-3 rounded-2xl bg-white/80 border border-rose-200 text-stone-600 hover:bg-rose-50 hover:text-rose-600 transition-all shadow-sm">
               <FaArrowLeft />
             </button>

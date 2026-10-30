@@ -2,16 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/lib/mongoose';
 import PedidoModel from '@/app/models/Pedido';
 import { verifyAdmin } from '@/app/lib/auth';
-import nodemailer from 'nodemailer'; // ✅ Agregado para el email
+import nodemailer from 'nodemailer';
 
 // ✅ GET: Obtener un solo pedido por su ID
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  req: NextRequest, 
+  { params }: { params: Promise<{ id: string }> } // ✅ Cambiado a Promise
+) {
   try {
     const admin = await verifyAdmin(req);
     if (!admin) return NextResponse.json({ message: 'No autorizado' }, { status: 403 });
 
+    // ✅ Extraer el ID con await
+    const { id } = await params;
+
     await connectDB();
-    const pedido = await PedidoModel.findById(params.id);
+    const pedido = await PedidoModel.findById(id);
 
     if (!pedido) {
       return NextResponse.json({ message: 'Pedido no encontrado' }, { status: 404 });
@@ -25,44 +31,41 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 // ✅ PUT: Actualizar un pedido existente (Estado, Pagos, Notas, Email)
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+// ✅ PUT: Actualizar un pedido existente (Estado, Pagos, Notas, Email)
+export async function PUT(
+  req: NextRequest, 
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const admin = await verifyAdmin(req);
     if (!admin) return NextResponse.json({ message: 'No autorizado' }, { status: 403 });
 
+    const { id } = await params;
     await connectDB();
     const body = await req.json();
     
-    // ✅ Agregamos clienteEmail a la desestructuración
     const { estado, seña, notas, fechaEntregaEstimada, clienteEmail } = body;
 
-    // 1. Buscar el pedido actual para obtener el total y recalcular el saldo pendiente
-    const pedidoActual = await PedidoModel.findById(params.id);
+    const pedidoActual = await PedidoModel.findById(id);
     if (!pedidoActual) {
       return NextResponse.json({ message: 'Pedido no encontrado' }, { status: 404 });
     }
 
-    // 2. Determinar la nueva seña (la que viene en el request o la que ya tenía)
     const nuevaSeña = seña !== undefined ? Number(seña) : pedidoActual.seña;
     const total = pedidoActual.total;
-    
-    // ✅ TU LÓGICA CLAVE (Intacta): Recalcular el saldo pendiente explícitamente
     const nuevoSaldoPendiente = Math.max(0, total - nuevaSeña);
 
-    // 3. Construir el objeto de actualización
     const updateData: any = {};
     if (estado !== undefined) updateData.estado = estado;
     if (seña !== undefined) updateData.seña = nuevaSeña;
     if (notas !== undefined) updateData.notas = notas;
     if (fechaEntregaEstimada !== undefined) updateData.fechaEntregaEstimada = new Date(fechaEntregaEstimada);
-    if (clienteEmail !== undefined) updateData.clienteEmail = clienteEmail; // ✅ Guardamos el email
+    if (clienteEmail !== undefined) updateData.clienteEmail = clienteEmail;
     
-    // Siempre actualizamos el saldo pendiente para mantener la consistencia
     updateData.saldoPendiente = nuevoSaldoPendiente;
 
-    // 4. Guardar los cambios
     const pedidoActualizado = await PedidoModel.findByIdAndUpdate(
-      params.id,
+      id,
       { $set: updateData },
       { new: true, runValidators: true }
     );
@@ -71,9 +74,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ message: 'Pedido no encontrado' }, { status: 404 });
     }
 
-    // 🚨 ALERTA SIMPLE: Si el estado cambia a "listo" y tenemos un email, enviamos la notificación
-    if (estado === 'listo' && pedidoActual.estado !== 'listo' && clienteEmail) {
+    // 🚨 DEBUG: Verificar por qué no se envía el correo
+    console.log('📧 --- DEBUG DE ENVÍO DE EMAIL ---');
+    console.log('1. Estado nuevo recibido:', estado);
+    console.log('2. Estado anterior en BD:', pedidoActual.estado);
+    console.log('3. Email proporcionado:', clienteEmail);
+    
+    const debeEnviar = (estado === 'listo' && pedidoActual.estado !== 'listo' && clienteEmail);
+    console.log('4. ¿Cumple todas las condiciones para enviar?', debeEnviar ? '✅ SÍ' : '❌ NO');
+
+    if (debeEnviar) {
       try {
+        console.log('🚀 Intentando enviar correo a:', clienteEmail);
         const transporter = nodemailer.createTransport({
           service: process.env.MAILER_SERVICE || 'gmail',
           auth: {
@@ -105,11 +117,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
             </div>
           `,
         });
+        console.log('✅ ¡Correo enviado con éxito!');
       } catch (emailError) {
-        console.error('❌ Error enviando email de alerta:', emailError);
-        // No fallamos la petición si solo el email falla, para no bloquear al usuario
+        console.error('❌ ERROR CRÍTICO AL ENVIAR EMAIL:', emailError);
       }
     }
+    console.log('📧 -------------------------------');
 
     return NextResponse.json({ 
       success: true, 
@@ -122,15 +135,20 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ message: 'Error interno del servidor' }, { status: 500 });
   }
 }
-
 // ✅ DELETE: Eliminar un pedido
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  req: NextRequest, 
+  { params }: { params: Promise<{ id: string }> } // ✅ Cambiado a Promise
+) {
   try {
     const admin = await verifyAdmin(req);
     if (!admin) return NextResponse.json({ message: 'No autorizado' }, { status: 403 });
 
+    // ✅ Extraer el ID con await
+    const { id } = await params;
+
     await connectDB();
-    const pedidoEliminado = await PedidoModel.findByIdAndDelete(params.id);
+    const pedidoEliminado = await PedidoModel.findByIdAndDelete(id); // ✅ Usar `id`
 
     if (!pedidoEliminado) {
       return NextResponse.json({ message: 'Pedido no encontrado' }, { status: 404 });
