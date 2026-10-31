@@ -3,7 +3,6 @@ import withPWAInit from '@ducanh2912/next-pwa';
 
 // 🔹 Configuración del PWA
 const withPWA = withPWAInit({
-  // ✅ Opciones válidas de PluginOptions
   dest: 'public',
   disable: process.env.NODE_ENV === 'development',
   register: true,
@@ -14,16 +13,12 @@ const withPWA = withPWAInit({
   cacheStartUrl: true,
   dynamicStartUrl: true,
   
-  // Excluir archivos grandes del precache
   publicExcludes: ['!node_modules/**/*'],
   
-  // ✅ TODO lo de Workbox va DENTRO de workboxOptions
   workboxOptions: {
-    skipWaiting: true,           // ✅ Aquí SÍ existe
-    clientsClaim: true,          // ✅ Aquí SÍ existe
-    cleanupOutdatedCaches: true, // Limpia caches viejos
-    
-    // ✅ runtimeCaching también va aquí
+    skipWaiting: true,
+    clientsClaim: true,
+    cleanupOutdatedCaches: true,
     runtimeCaching: [
       {
         urlPattern: /^https:\/\/res\.cloudinary\.com\/.*/i,
@@ -60,28 +55,23 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  env: {
-    MONGODB_CNN: process.env.MONGODB_CNN,
-    JWT_SECRET: process.env.JWT_SECRET,
-    GOOGLE_SECRET: process.env.GOOGLE_SECRET,
-    ID_GOOGLE: process.env.ID_GOOGLE,
-    MAILER_SERVICE: process.env.MAILER_SERVICE,
-    MAILER_EMAIL: process.env.MAILER_EMAIL,
-    MAILER_SECRET_KEY: process.env.MAILER_SECRET_KEY,
-    CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
-    CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
-    CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
-  },
+  
+  // 🚨 CRÍTICO: Se eliminó el bloque `env`. 
+  // Next.js lee automáticamente tu archivo `.env` para el backend.
+  // Exponer JWT_SECRET, MONGODB_CNN o API_SECRET aquí los hace visibles 
+  // para cualquier persona que visite tu sitio web. ¡Nunca hagas esto!
+  
   images: {
-    unoptimized: true,
+    // Se recomienda quitar 'unoptimized: true' para que Next.js optimice 
+    // y comprima las imágenes automáticamente, mejorando la velocidad.
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: 'res.cloudinary.com', // Es más seguro especificar el dominio exacto que '**'
       },
       {
-        protocol: 'http',
-        hostname: '**',
+        protocol: 'https',
+        hostname: 'images.unsplash.com', // Agrega aquí otros dominios de imágenes si los usas
       },
     ],
   },

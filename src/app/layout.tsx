@@ -16,9 +16,7 @@ import VersionChecker from "./components/version/VersionChecker";
 import { Analytics } from "@vercel/analytics/next"
 
 
-export const viewport: Viewport = {
-  themeColor: '#8b5cf6',
-};
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,52 +39,27 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.candyilusiones
 
 
 export const metadata: Metadata = {
-  title: "Candy Ilusiones",
-  description: "Encontrá lo que buscás en Candy Ilusiones",
-  manifest: "/manifest.json",
-  keywords: "moda , sublimacion, look, tendencia, outfit, personalizado, sublimar, sublimacion, sublimar remeras, sublimar tazas, sublimar gorras, sublimar almohadones, sublimar llaveros, sublimar mate, sublimar vinilo, sublimar tela, sublimar madera, sublimar metal, sublimar vidrio",
-  authors: [{ name: "Candy Ilusiones", url: SITE_URL }],
-
-  metadataBase: new URL(SITE_URL),
-  alternates: {
-    canonical: '/',
-  },
-
-
-  openGraph: {
-    title: "Candy Ilusiones",
-    description: "Encontrá lo que buscás en Candy Ilusiones",
-    url: SITE_URL,
-    siteName: "Candy Ilusiones",
-    images: [
-      {
-        url: "/og-image.jpg",
-        width: 1200,
-        height: 630,
-        alt: "Candy Ilusiones",
-      },
-    ],
-    locale: "es_AR",
-    type: "website",
-  },
-
-  twitter: {
-    card: "summary_large_image",
-    title: "Candy Ilusiones",
-    description: "Encontrá lo que buscás en Candy Ilusiones",
-    images: ["/og-image.jpg"],
-  },
-
-  other: {
-    "apple-mobile-web-app-capable": "yes",
-    "apple-mobile-web-app-status-bar-style": "black-translucent",
-  },
+  title: 'Candy Ilusiones',
+  description: 'Productos personalizados para hacer tus momentos únicos',
+  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: 'Candy Ilusiones',
   },
+  formatDetection: {
+    telephone: false,
+  },
 };
+
+export const viewport: Viewport = {
+  themeColor: '#F472B6',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 
 export default function RootLayout({
   children,
@@ -101,7 +74,7 @@ export default function RootLayout({
     >
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
 
       <body
@@ -184,3 +157,7 @@ export default function RootLayout({
     </html>
   );
 }
+
+
+
+
