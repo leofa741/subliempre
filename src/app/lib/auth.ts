@@ -1,4 +1,4 @@
-/* eslint-disable */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import type { NextAuthOptions } from 'next-auth';
@@ -6,29 +6,17 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import connectDB from './mongoose';
 import UserModel from '../models/User';
-import ClienteModel from '../models/Cliente';
-import AlertaModel from '../models/Alerta';
 import { NextRequest } from 'next/server';
-import LogModel from '../models/LogLogin';
 import nodemailer from "nodemailer";
-
-// 🚨 SALVAGUARDAS CRÍTICAS: Si falta algo en Vercel, nos lo dirá claramente en el log
-if (!process.env.NEXTAUTH_SECRET) {
-  throw new Error("❌ FALTA LA VARIABLE DE ENTORNO EN VERCEL: NEXTAUTH_SECRET");
-}
-if (!process.env.ID_GOOGLE || !process.env.GOOGLE_SECRET) {
-  throw new Error("❌ FALTAN VARIABLES DE ENTORNO EN VERCEL: ID_GOOGLE o GOOGLE_SECRET");
-}
-if (!process.env.JWT_SECRET) {
-  throw new Error("❌ FALTA LA VARIABLE DE ENTORNO EN VERCEL: JWT_SECRET");
-}
 
 connectDB();
 
+// ✅ Tipos actualizados para Aula Virtual
 export interface DecodedToken {
   id: string;
   email: string;
-  role: string;
+  role: 'superadmin' | 'admin' | 'profesor' | 'alumno';
+  name?: string;
 }
 
 type ExtendedUser = {
@@ -36,171 +24,56 @@ type ExtendedUser = {
   email: string;
   role: string;
   name: string;
-  lastName: string;
-  phone: string;
-  address: string;
-  city: string;
-  zipCode: string;
-  image: string;
+  image?: string;
   token: string;
 };
 
-// ✅ Función para normalizar teléfono
-function normalizeTelefono(text?: string): string | null {
-  if (!text) return null;
-  const normalized = text
-    .trim()
-    .replace(/\s+/g, '')
-    .replace(/[^0-9+]/g, '');
-  return normalized || null;
-}
-
-// ✅ Función para normalizar razón social
-function normalizeRazonSocial(text: string): string {
-  if (!text) return '';
-  return text
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]/g, '');
-}
-
-// ✅ Función para crear cliente automáticamente (E-commerce)
-async function crearClienteAutomatico(userData: {
-  name: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  address: string;
-  city: string;
-  zipCode: string;
-  img?: string;
-}) {
-  try {
-    // 1. Verificar si ya existe por email
-    const clienteExistente = await ClienteModel.findOne({ email: userData.email });
-    if (clienteExistente) {
-      return clienteExistente;
-    }
-
-    // 2. Lógica inteligente para nombre y apellido
-    const nombreRaw = (userData.name || 'Cliente').trim();
-    const apellidoRaw = (userData.lastName || '').trim();
-
-    const nombre = nombreRaw || 'Cliente';
-    const apellido = apellidoRaw || 'Cliente'; 
-    
-    const razonSocial = `${nombre} ${apellido} ${userData.email}`.trim();
-    const razonSocialNormalized = normalizeRazonSocial(razonSocial);
-
-    let telefono: string | null = null;
-    let telefonoNormalized: string | null = null;
-
-    // 3. Procesar teléfono si existe y es válido
-    const phoneTrimmed = userData.phone?.trim();
-    if (phoneTrimmed && phoneTrimmed !== '00000000' && /[\d+]/.test(phoneTrimmed)) {
-      telefono = phoneTrimmed;
-      telefonoNormalized = normalizeTelefono(phoneTrimmed);
-      
-      // Verificar si ese teléfono real ya está en uso
-      const yaExiste = await ClienteModel.findOne({ telefonoNormalized });
-      if (yaExiste) {
-        telefono = null;
-        telefonoNormalized = null; // Anulamos para evitar el choque
-      }
-    }
-
-    // ✅ 4. SOLUCIÓN CLAVE: Generar un valor único ficticio si no hay teléfono real.
-    const telefonoFinal = telefono || `SIN_TELEFONO_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    const telefonoNormalizedFinal = telefonoNormalized || null;
-
-    const clienteData: any = {
-      razonSocial,
-      razonSocialNormalized,
-      nombre,
-      apellido,
-      email: userData.email,
-      direccion: userData.address || '',
-      ciudad: userData.city || 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      formaPago: 'transferencia',
-      activo: true,
-      origen: 'registro_automatico',
-      telefono: telefonoFinal,
-      telefonoNormalized: telefonoNormalizedFinal
-    };
-
-    const nuevoCliente = new ClienteModel(clienteData);
-    return await nuevoCliente.save();
-
-  } catch (error: any) {
-    console.error('❌ Error creando cliente automático:', error);
-
-    // 5. Fallback de emergencia si algo más falla
-    if (error.code === 11000 || error.statusCode === 409) {
-      try {
-        const nombre = (userData.name || 'Cliente').trim();
-        const apellido = (userData.lastName || '').trim();
-        const razonSocial = `${nombre} ${apellido} ${userData.email}`.trim();
-
-        const fallbackCliente = await ClienteModel.create({
-          razonSocial,
-          razonSocialNormalized: normalizeRazonSocial(razonSocial),
-          nombre,
-          apellido,
-          email: userData.email,
-          telefono: `SIN_TELEFONO_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-          telefonoNormalized: null,
-          direccion: userData.address || '',
-          ciudad: userData.city || 'Buenos Aires',
-          provincia: 'Buenos Aires',
-          formaPago: 'transferencia',
-          activo: true,
-          origen: 'registro_automatico_fallback'
-        });
-
-        return fallbackCliente;
-      } catch (fallbackError) {
-        console.error('❌ Fallback también falló:', fallbackError);
-        throw fallbackError;
-      }
-    }
-    throw error;
-  }
-}
-
-// === Función para enviar email de login (Estética Premium) ===
-async function sendLoginEmail(to: string) {
+// === Función para enviar email de bienvenida (Adaptada a Aula Virtual) ===
+async function sendWelcomeEmail(to: string, name: string) {
   try {
     const transporter = nodemailer.createTransport({
       service: process.env.MAILER_SERVICE || 'gmail',
       auth: {
         user: process.env.MAILER_EMAIL,
-        pass: process.env.MAILER_SECRET_KEY, // O MAILER_PASSWORD, según como lo tengas en Vercel
+        pass: process.env.MAILER_SECRET_KEY,
       },
     });
 
+    const baseUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
+
     await transporter.sendMail({
-      from: `"Candy Ilusiones" <${process.env.MAILER_EMAIL}>`,
+      from: `"Aula Virtual" <${process.env.MAILER_EMAIL}>`,
       to,
-      subject: "🔔 Nuevo inicio de sesión detectado",
+      subject: '🎓 ¡Bienvenido al Aula Virtual!',
       html: `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #FFFBF7; border-radius: 16px; border: 1px solid #FCE7F3;">
-          <h2 style="color: #BE185D; margin-top: 0; font-size: 20px;">¡Hola!</h2>
-          <p style="color: #57534E; line-height: 1.6; font-size: 15px;">Se ha detectado un nuevo inicio de sesión en tu cuenta de <strong>Candy Ilusiones</strong>.</p>
-          <div style="background: #FFF1F2; padding: 16px; border-radius: 12px; margin: 16px 0; border-left: 4px solid #F472B6;">
-            <p style="margin: 0; color: #881337; font-size: 14px;"><strong>Email:</strong> ${to}</p>
-            <p style="margin: 8px 0 0; color: #881337; font-size: 14px;"><strong>Fecha:</strong> ${new Date().toLocaleString("es-AR")}</p>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #0f172a; color: #e2e8f0; }
+            .header { background: linear-gradient(135deg, #8b5cf6, #ec4899); padding: 32px 24px; text-align: center; border-radius: 12px 12px 0 0; }
+            .header h1 { color: white; margin: 0; font-size: 24px; }
+            .body { padding: 24px; background: #1e293b; border-radius: 0 0 12px 12px; }
+            .cta { display: inline-block; background: #8b5cf6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600; margin-top: 16px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>🎓 ¡Bienvenido al Aula Virtual!</h1>
           </div>
-          <p style="color: #57534E; line-height: 1.6; font-size: 15px;">Si no fuiste vos, te recomendamos cambiar tu contraseña de inmediato o contactarnos.</p>
-          <p style="color: #A8A29E; font-size: 12px; margin-top: 24px; text-align: center;">Candy Ilusiones · Buenos Aires, Argentina</p>
-        </div>
+          <div class="body">
+            <p>Hola <strong>${name}</strong>,</p>
+            <p>Tu cuenta ha sido creada exitosamente. Ya puedes acceder a la plataforma para ver tus cursos, materiales y tareas asignadas.</p>
+            <a href="${baseUrl}/aula" class="cta">Ir al Aula Virtual →</a>
+            <p style="margin-top: 24px; font-size: 14px; color: #94a3b8;">Si no solicitaste este registro, ignora este correo.</p>
+          </div>
+        </body>
+        </html>
       `,
     });
+    console.log(`✅ Email de bienvenida enviado a ${to}`);
   } catch (error) {
-    console.error("❌ Error enviando email de login:", error);
+    console.error("❌ Error enviando email de bienvenida:", error);
   }
 }
 
@@ -219,35 +92,27 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials): Promise<ExtendedUser | null> {
         await connectDB();
         const user = await UserModel.findOne({ email: credentials?.email });
+        
         if (!user) throw new Error('Usuario no encontrado');
         
-        const isMatch = await bcrypt.compare(credentials!.password, user.password);
-        if (!isMatch) throw new Error('Contraseña incorrecta');
-
-        if (user.role === 'user' || user.role === 'cliente') {
-          await crearClienteAutomatico({
-            name: user.name,
-            lastName: user.lastName,
-            email: user.email,
-            phone: user.phone,
-            address: user.address,
-            city: user.city,
-            zipCode: user.zipCode,
-            img: user.img
-          });
+        // ✅ NUEVO: VALIDACIÓN DE CUENTA ACTIVA (Para login con credenciales)
+        if (user.isActive === false) {
+          throw new Error('Tu cuenta está pendiente de aprobación por un administrador.');
+        }
+        
+        // Si el usuario se registró con Google, no tiene password hash, o usamos un hash dummy
+        if (!user.google) {
+          const isMatch = await bcrypt.compare(credentials!.password, user.password);
+          if (!isMatch) throw new Error('Contraseña incorrecta');
         }
 
+        // Generar token JWT con los datos esenciales del Aula Virtual
         const token = jwt.sign(
           {
             id: user.id.toString(),
             email: user.email,
             role: user.role,
             name: user.name,
-            lastName: user.lastName,
-            phone: user.phone,
-            address: user.address,
-            city: user.city,
-            zipCode: user.zipCode
           },
           process.env.JWT_SECRET as string,
           { expiresIn: '30d' }
@@ -258,12 +123,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           role: user.role,
           name: user.name,
-          lastName: user.lastName || '',
-          phone: user.phone || '',
-          address: user.address || '',
-          city: user.city || '',
-          zipCode: user.zipCode || '',
-          image: user.img,
+          image: user.img || user.image,
           token,
         };
       },
@@ -280,201 +140,34 @@ export const authOptions: NextAuthOptions = {
 
         if (!existingUser) {
           esUsuarioNuevoGoogle = true;
-          
-          // ✅ Intentamos separar el nombre completo que da Google en nombre y apellido
-          const fullName = user.name || 'Cliente Candy';
-          const nameParts = fullName.split(' ');
-          const firstName = nameParts[0];
-          const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Cliente';
-
+          // 👤 Usuario NUEVO con Google: Rol por defecto 'alumno' y activo
           existingUser = new UserModel({
-            name: firstName,
-            lastName: lastName,
-            phone: '',
-            address: '',
-            city: 'Buenos Aires',
-            zipCode: '',
+            name: user.name || 'Alumno',
             email: user.email,
             img: user.image || '',
-            password: await bcrypt.hash('google-auth', 10),
-            role: 'user',
+            password: await bcrypt.hash('google-auth-dummy', 10),
+            role: 'alumno',
+            isActive: true, // ✅ Por defecto activo
             google: true,
           });
           await existingUser.save();
-
-          // ✅ Crear cliente + alerta de bienvenida
-          if (existingUser.role === 'user' || existingUser.role === 'cliente') {
-            const clienteGuardado = await crearClienteAutomatico({
-              name: existingUser.name,
-              lastName: existingUser.lastName,
-              email: existingUser.email,
-              phone: existingUser.phone,
-              address: existingUser.address,
-              city: existingUser.city,
-              zipCode: existingUser.zipCode,
-              img: existingUser.img
-            });
-            
-            if (clienteGuardado?._id) {
-              try {
-                // 1. Crear alerta pre-configurada de NOVEDADES
-                await AlertaModel.create({
-                  usuario: existingUser._id,
-                  cliente: clienteGuardado._id,
-                  tipo: 'novedades',
-                  criterios: {
-                    categorias: ['todas'],
-                    incluyeOfertas: true,
-                    recordatorioCumpleanos: true
-                  },
-                  frecuencia: 'semanal',
-                  activo: true
-                });
-
-                // 2. Enviar email de bienvenida con estética Premium Pastel
-                const transporter = nodemailer.createTransport({
-                  service: process.env.MAILER_SERVICE || 'gmail',
-                  auth: {
-                    user: process.env.MAILER_EMAIL,
-                    pass: process.env.MAILER_SECRET_KEY,
-                  },
-                });
-
-                const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://www.candyilusiones.com.ar';
-
-                await transporter.sendMail({
-                  from: `"Candy Ilusiones" <${process.env.MAILER_EMAIL}>`,
-                  to: existingUser.email,
-                  subject: '🎨 ¡Bienvenido + Alerta de Novedades activada!',
-                  html: `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 650px; margin: 0 auto; background: #FFFBF7; color: #57534E; }
-    .header { background: linear-gradient(135deg, #F9A8D4, #FCA5A5, #FDE68A); padding: 40px 24px; text-align: center; border-radius: 16px 16px 0 0; }
-    .header h1 { color: #881337; margin: 0 0 8px; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
-    .body { padding: 32px 24px; background: #FFFFFF; border-radius: 0 0 16px 16px; border: 1px solid #FCE7F3; border-top: none; }
-    .card { background: #FFF1F2; border: 1px solid #FECDD3; border-radius: 16px; padding: 24px; margin: 20px 0; }
-    .badge { display: inline-block; background: linear-gradient(135deg, #F472B6, #FB7185); color: white; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
-    .cta { display: inline-block; background: linear-gradient(135deg, #F472B6, #FB7185); color: white; padding: 16px 36px; text-decoration: none; border-radius: 9999px; font-weight: 700; margin: 16px 0; font-size: 15px; box-shadow: 0 10px 25px -5px rgba(244, 114, 182, 0.4); }
-    .footer { text-align: center; padding: 32px 24px; color: #A8A29E; font-size: 13px; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>🎨 ¡Bienvenido a Candy Ilusiones!</h1>
-    <p style="color: #9D174D; margin: 0; font-size: 16px; font-weight: 500;">Tu cuenta está lista para crear momentos únicos</p>
-  </div>
-  <div class="body">
-    <p style="font-size: 16px; line-height: 1.6;">Hola <strong style="color: #BE185D;">${existingUser.name || existingUser.email.split('@')[0]}</strong>,</p>
-    <p style="font-size: 16px; line-height: 1.6;">Gracias por registrarte. Para que no te pierdas nada, <strong>ya activamos una alerta de novedades</strong> personalizada para vos:</p>
-    
-    <div class="card">
-      <span class="badge">🔔 Alerta de Novedades</span>
-      <p style="margin: 16px 0 0; font-weight: 700; color: #881337; font-size: 16px;">Nuevos diseños, sublimación y decoración</p>
-      <p style="color: #9D174D; margin: 6px 0 0; font-size: 14px; line-height: 1.5;">📅 <strong>Frecuencia:</strong> Semanal</p>
-      <p style="color: #9D174D; margin: 6px 0 0; font-size: 14px; line-height: 1.5;">🎁 <strong>Beneficio:</strong> Ofertas exclusivas para suscriptores</p>
-    </div>
-
-    <p style="font-size: 16px; line-height: 1.6;">Recibirás un email cada semana con las últimas creaciones y descuentos especiales. Podés gestionar tus preferencias en cualquier momento:</p>
-    
-    <div style="text-align: center; margin-top: 24px;">
-      <a href="${baseUrl}/perfil/alertas" class="cta">Gestionar mis alertas →</a>
-    </div>
-    
-    <p style="margin-top: 32px; font-size: 15px; color: #78716C; line-height: 1.6; text-align: center; font-style: italic;">
-      "¿Tenés una idea en mente? Respondé este email y te ayudamos a hacerla realidad."
-    </p>
-  </div>
-  <div class="footer">
-    <p style="margin: 0 0 8px; font-weight: 700; color: #BE185D; font-size: 14px;">Candy Ilusiones</p>
-    <p style="margin: 0;">© ${new Date().getFullYear()} · Buenos Aires, Argentina · Hecho con amor 💜</p>
-  </div>
-</body>
-</html>`,
-                  text: `
-¡Bienvenido a Candy Ilusiones!
-
-Hola ${existingUser.name || existingUser.email.split('@')[0]},
-
-🔔 Alerta de Novedades activada:
-• Nuevos diseños, sublimación y decoración
-• 📅 Frecuencia: Semanal
-• 🎁 Beneficio: Ofertas exclusivas para suscriptores
-
-Recibirás un email cada semana con las últimas creaciones y descuentos especiales.
-Gestionar alertas: ${baseUrl}/perfil/alertas
-
-¿Tenés una idea en mente? Respondé este email y te ayudamos a hacerla realidad.
-
----
-Candy Ilusiones · Buenos Aires, Argentina · Hecho con amor 💜
-                  `.trim()
-                });
-
-                console.log(`✅ Email de bienvenida + alerta de novedades enviado a ${existingUser.email}`);
-              } catch (alertError) {
-                console.error('⚠️ Error creando alerta o enviando email de bienvenida:', alertError);
-              }
-            }
-          }
+          
+          await sendWelcomeEmail(existingUser.email, existingUser.name);
         } else {
-          // 👤 Usuario EXISTENTE con Google (pero quizás sin cliente)
-          if (existingUser.role === 'user' || existingUser.role === 'cliente') {
-            const clienteGuardado = await crearClienteAutomatico({
-              name: existingUser.name,
-              lastName: existingUser.lastName,
-              email: existingUser.email,
-              phone: existingUser.phone,
-              address: existingUser.address,
-              city: existingUser.city,
-              zipCode: existingUser.zipCode,
-              img: existingUser.img
-            });
-
-            if (clienteGuardado?._id) {
-              try {
-                const yaTieneAlertas = await AlertaModel.findOne({
-                  usuario: existingUser._id,
-                  tipo: 'novedades',
-                  activo: true
-                });
-
-                if (!yaTieneAlertas) {
-                  await AlertaModel.create({
-                    usuario: existingUser._id,
-                    cliente: clienteGuardado._id,
-                    tipo: 'novedades',
-                    criterios: {
-                      categorias: ['todas'],
-                      incluyeOfertas: true
-                    },
-                    frecuencia: 'semanal',
-                    activo: true
-                  });
-                  console.log(`✅ Alerta de novedades creada para usuario existente: ${existingUser.email}`);
-                }
-              } catch (alertError) {
-                console.error('⚠️ Error creando alerta para usuario existente:', alertError);
-              }
-            }
+          // ✅ NUEVO: VALIDACIÓN DE CUENTA ACTIVA (Para login con Google de usuarios existentes)
+          if (existingUser.isActive === false) {
+            // Devolver false bloquea el inicio de sesión y redirige al error
+            return false; 
           }
         }
-
-        // 🔑 Generar token JWT
+        
+        // 🔑 Generar token JWT para usuarios de Google (nuevos o existentes)
         const token = jwt.sign(
           {
             id: existingUser.id.toString(),
             email: existingUser.email,
             role: existingUser.role,
             name: existingUser.name,
-            lastName: existingUser.lastName,
-            phone: existingUser.phone,
-            address: existingUser.address,
-            city: existingUser.city,
-            zipCode: existingUser.zipCode,
           },
           process.env.JWT_SECRET as string,
           { expiresIn: '30d' }
@@ -485,41 +178,8 @@ Candy Ilusiones · Buenos Aires, Argentina · Hecho con amor 💜
         u.id = existingUser.id.toString();
         u.role = existingUser.role;
         u.token = token;
-        u.lastName = existingUser.lastName || '';
-        u.phone = existingUser.phone || '';
-        u.address = existingUser.address || '';
-        u.city = existingUser.city || '';
-        u.zipCode = existingUser.zipCode || '';
-        u.image = existingUser.img || '';
         u.name = existingUser.name || '';
-      }
-
-      // ⬅️ REGISTRO EN BITÁCORA (ADMIN, SUPERADMIN Y VENDEDOR)
-      try {
-        const role =
-          (user as any).role ||
-          (account?.provider === 'google'
-            ? (await UserModel.findOne({ email: user.email }))?.role
-            : null);
-
-        if (role === 'admin' || role === 'superadmin' || role === 'vendedor') {
-          await LogModel.create({
-            email: user.email,
-            provider: account?.provider || 'credentials',
-            timestamp: new Date(),
-          });
-        }
-      } catch (error) {
-        console.error("Error guardando bitácora:", error);
-      }
-
-      // === ✅ Enviar email de login ===
-      if (!esUsuarioNuevoGoogle) {
-        try {
-          await sendLoginEmail(user.email as string);
-        } catch (emailError) {
-          console.error('❌ Error enviando email de login:', emailError);
-        }
+        u.image = existingUser.img || existingUser.image || '';
       }
 
       return true;
@@ -532,11 +192,6 @@ Candy Ilusiones · Buenos Aires, Argentina · Hecho con amor 💜
         token.email = u.email;
         token.role = u.role;
         token.name = u.name;
-        token.lastName = u.lastName;
-        token.phone = u.phone;
-        token.address = u.address;
-        token.city = u.city;
-        token.zipCode = u.zipCode;
         token.image = u.image;
         token.token = u.token;
       }
@@ -545,40 +200,51 @@ Candy Ilusiones · Buenos Aires, Argentina · Hecho con amor 💜
 
     async session({ session, token }) {
       const t = token as any;
-      session.user.id = t.id;
-      session.user.email = t.email;
-      session.user.role = t.role;
-      session.user.lastName = t.lastName;
-      session.user.phone = t.phone;
-      session.user.address = t.address;
-      session.user.city = t.city;
-      session.user.zipCode = t.zipCode;
-      session.user.name = t.name;
-      session.user.token = t.token || t.accessToken;
+      if (session.user) {
+        session.user.id = t.id;
+        session.user.email = t.email;
+        session.user.role = t.role;
+        session.user.name = t.name;
+        session.user.image = t.image;
+        session.user.token = t.token;
+      }
       return session;
     },
   },
 
-  secret: process.env.JWT_SECRET, // NextAuth también busca NEXTAUTH_SECRET automáticamente
+  pages: {
+    signIn: '/login', 
+    error: '/login', // Si el signIn devuelve false, irá a /login?error=AccessDenied
+  },
+  
+  secret: process.env.JWT_SECRET,
 };
 
-// Helpers de admin
+// =========================================================
+// 🔒 Helpers de verificación para API Routes (Middleware)
+// =========================================================
+
 export const verifyAdmin = async (req: NextRequest): Promise<DecodedToken | null> => {
   try {
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+    
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as DecodedToken;
-    return ['admin', 'superadmin', 'vendedor'].includes(decoded.role) ? decoded : null;
+    
+    if (['admin', 'superadmin'].includes(decoded.role)) {
+      return decoded;
+    }
+    return null;
   } catch {
     return null;
   }
 };
 
-export const verifyAdminToken = (token: string): DecodedToken | null => {
+export const verifyToken = (token: string): DecodedToken | null => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as DecodedToken;
-    return ['admin', 'superadmin', 'vendedor'].includes(decoded.role) ? decoded : null;
+    return decoded;
   } catch {
     return null;
   }
