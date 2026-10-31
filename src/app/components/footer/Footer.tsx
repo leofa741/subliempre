@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -10,7 +11,9 @@ const Footer = () => {
   const mensaje = 'Hola,%20me%20interesa%20consultar%20por%20un%20producto%20personalizado';
   const EMAIL_CANDY = 'hola.candyilusiones@gmail.com';
 
-  // Función de compartir simple y nativa (sin modales pesados)
+  // Estado para la micro-interacción premium
+  const [isCopied, setIsCopied] = useState(false);
+
   const handleShare = async () => {
     if (navigator.share) {
       try {
@@ -23,9 +26,18 @@ const Footer = () => {
         console.log('Error al compartir:', err);
       }
     } else {
-      // Fallback para PC: copiar al portapapeles
-      navigator.clipboard.writeText(window.location.href);
-      alert('¡Enlace copiado al portapapeles!');
+      // Fallback premium para PC: copiar al portapapeles con feedback visual
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        setIsCopied(true);
+        
+        // Volver al estado normal después de 2.5 segundos
+        setTimeout(() => {
+          setIsCopied(false);
+        }, 2500);
+      } catch (err) {
+        console.error('Error al copiar:', err);
+      }
     }
   };
 
@@ -51,14 +63,32 @@ const Footer = () => {
               Productos personalizados con amor para hacer tus celebraciones inolvidables. 
               Sublimación, decoración y detalles únicos.
             </p>
+            
+            {/* Botón con Micro-interacción Premium */}
             <button
               onClick={handleShare}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-400 to-pink-400 text-white text-sm font-semibold shadow-md hover:shadow-lg hover:scale-[1.02] transition-all duration-300"
+              disabled={isCopied}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold shadow-md transition-all duration-300 ${
+                isCopied 
+                  ? 'bg-green-500 text-white cursor-default scale-[1.02]' 
+                  : 'bg-gradient-to-r from-purple-400 to-pink-400 text-white hover:shadow-lg hover:scale-[1.02]'
+              }`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-              </svg>
-              Compartir Tienda
+              {isCopied ? (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  ¡Enlace copiado!
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                  </svg>
+                  Compartir Tienda
+                </>
+              )}
             </button>
           </div>
 
@@ -67,10 +97,10 @@ const Footer = () => {
             <h3 className="text-sm tracking-wider uppercase text-purple-500 font-bold mb-4">Categorías</h3>
             <ul className="space-y-3">
               {[
-                { label: 'Sublimación', href: '/productos?categoria=sublimacion' },
-                { label: 'Remeras Personalizadas', href: '/productos?categoria=remeras' },
-                { label: 'Decoración Cumpleaños', href: '/productos?categoria=cumpleaños' },
-                { label: 'Tazas & Mugs', href: '/productos?categoria=tazas' },
+                { label: 'Sublimación', href: '/catalogo?categoria=sublimacion' },
+                { label: 'Remeras Personalizadas', href: '/catalogo?categoria=remeras' },
+                { label: 'Decoración Cumpleaños', href: '/catalogo?categoria=cumpleaños' },
+                { label: 'Tazas & Mugs', href: '/catalogo?categoria=tazas' },
               ].map((item) => (
                 <li key={item.href}>
                   <Link 
