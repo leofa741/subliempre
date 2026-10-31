@@ -1,6 +1,27 @@
 import type { NextConfig } from 'next';
 import withPWAInit from '@ducanh2912/next-pwa';
 
+// 🚨 VALIDACIÓN DE VARIABLES DE ENTORNO (Fail-Fast)
+// Si alguna de estas falta en Vercel, el build fallará inmediatamente con un error claro.
+const requiredEnvVars = [
+  'NEXTAUTH_URL',
+  'NEXTAUTH_SECRET',
+  'ID_GOOGLE',
+  'GOOGLE_SECRET',
+  'JWT_SECRET',
+  'MONGODB_CNN'
+];
+
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    throw new Error(`
+      ❌ ERROR CRÍTICO DE COMPILACIÓN EN VERCEL:
+      La variable de entorno "${envVar}" no está definida.
+      Por favor, ve a Vercel > Settings > Environment Variables y agrégala.
+    `);
+  }
+}
+
 const withPWA = withPWAInit({
   dest: 'public',
   disable: process.env.NODE_ENV === 'development',
