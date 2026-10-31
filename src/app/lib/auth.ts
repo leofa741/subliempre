@@ -12,6 +12,17 @@ import { NextRequest } from 'next/server';
 import LogModel from '../models/LogLogin';
 import nodemailer from "nodemailer";
 
+// 🚨 SALVAGUARDAS CRÍTICAS: Si falta algo en Vercel, nos lo dirá claramente en el log
+if (!process.env.NEXTAUTH_SECRET) {
+  throw new Error("❌ FALTA LA VARIABLE DE ENTORNO EN VERCEL: NEXTAUTH_SECRET");
+}
+if (!process.env.ID_GOOGLE || !process.env.GOOGLE_SECRET) {
+  throw new Error("❌ FALTAN VARIABLES DE ENTORNO EN VERCEL: ID_GOOGLE o GOOGLE_SECRET");
+}
+if (!process.env.JWT_SECRET) {
+  throw new Error("❌ FALTA LA VARIABLE DE ENTORNO EN VERCEL: JWT_SECRET");
+}
+
 connectDB();
 
 export interface DecodedToken {
@@ -56,7 +67,6 @@ function normalizeRazonSocial(text: string): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
-// ✅ Función para crear cliente automáticamente (E-commerce)
 // ✅ Función para crear cliente automáticamente (E-commerce)
 async function crearClienteAutomatico(userData: {
   name: string;
@@ -103,7 +113,6 @@ async function crearClienteAutomatico(userData: {
     }
 
     // ✅ 4. SOLUCIÓN CLAVE: Generar un valor único ficticio si no hay teléfono real.
-    // Esto evita colisiones con campos 'required' o índices 'unique' en la base de datos.
     const telefonoFinal = telefono || `SIN_TELEFONO_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const telefonoNormalizedFinal = telefonoNormalized || null;
 
@@ -129,7 +138,7 @@ async function crearClienteAutomatico(userData: {
   } catch (error: any) {
     console.error('❌ Error creando cliente automático:', error);
 
-    // 5. Fallback de emergencia si algo más falla (ej. duplicado de email por condición de carrera)
+    // 5. Fallback de emergencia si algo más falla
     if (error.code === 11000 || error.statusCode === 409) {
       try {
         const nombre = (userData.name || 'Cliente').trim();
@@ -142,7 +151,7 @@ async function crearClienteAutomatico(userData: {
           nombre,
           apellido,
           email: userData.email,
-          telefono: `SIN_TELEFONO_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`, // ✅ También único aquí
+          telefono: `SIN_TELEFONO_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
           telefonoNormalized: null,
           direccion: userData.address || '',
           ciudad: userData.city || 'Buenos Aires',
@@ -169,7 +178,7 @@ async function sendLoginEmail(to: string) {
       service: process.env.MAILER_SERVICE || 'gmail',
       auth: {
         user: process.env.MAILER_EMAIL,
-        pass: process.env.MAILER_SECRET_KEY,
+        pass: process.env.MAILER_SECRET_KEY, // O MAILER_PASSWORD, según como lo tengas en Vercel
       },
     });
 
@@ -269,7 +278,7 @@ export const authOptions: NextAuthOptions = {
       if (account?.provider === 'google') {
         let existingUser = await UserModel.findOne({ email: user.email });
 
-               if (!existingUser) {
+        if (!existingUser) {
           esUsuarioNuevoGoogle = true;
           
           // ✅ Intentamos separar el nombre completo que da Google en nombre y apellido
@@ -280,7 +289,7 @@ export const authOptions: NextAuthOptions = {
 
           existingUser = new UserModel({
             name: firstName,
-            lastName: lastName, // ✅ Ahora siempre tendrá un valor válido
+            lastName: lastName,
             phone: '',
             address: '',
             city: 'Buenos Aires',
@@ -305,14 +314,14 @@ export const authOptions: NextAuthOptions = {
               zipCode: existingUser.zipCode,
               img: existingUser.img
             });
-            // ... (el resto del código de la alerta y email se queda igual)
+            
             if (clienteGuardado?._id) {
               try {
-                // 1. Crear alerta pre-configurada de NOVEDADES (adaptado a Candy Ilusiones)
+                // 1. Crear alerta pre-configurada de NOVEDADES
                 await AlertaModel.create({
                   usuario: existingUser._id,
                   cliente: clienteGuardado._id,
-                  tipo: 'novedades', // Cambiado de 'busqueda' a 'novedades'
+                  tipo: 'novedades',
                   criterios: {
                     categorias: ['todas'],
                     incluyeOfertas: true,
@@ -331,7 +340,7 @@ export const authOptions: NextAuthOptions = {
                   },
                 });
 
-                const baseUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
+                const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://www.candyilusiones.com.ar';
 
                 await transporter.sendMail({
                   from: `"Candy Ilusiones" <${process.env.MAILER_EMAIL}>`,
@@ -550,7 +559,7 @@ Candy Ilusiones · Buenos Aires, Argentina · Hecho con amor 💜
     },
   },
 
-  secret: process.env.JWT_SECRET,
+  secret: process.env.JWT_SECRET, // NextAuth también busca NEXTAUTH_SECRET automáticamente
 };
 
 // Helpers de admin
@@ -560,7 +569,6 @@ export const verifyAdmin = async (req: NextRequest): Promise<DecodedToken | null
     if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as DecodedToken;
-    // Permitimos admin, superadmin y vendedor para acceder al panel
     return ['admin', 'superadmin', 'vendedor'].includes(decoded.role) ? decoded : null;
   } catch {
     return null;
