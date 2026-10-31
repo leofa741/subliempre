@@ -176,7 +176,7 @@ export default function GestionUsuariosPage() {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8">
-      <div className="max-w-6xl mx-auto pt-8 space-y-8">
+      <div className="max-w-6xl mx-auto mt-50 pt-8 space-y-8">
         
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">

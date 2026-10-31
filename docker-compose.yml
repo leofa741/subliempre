@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  candy-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: candy-ilusiones-app
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.production # Usaremos un archivo específico para producción/Docker
+    networks:
+      - candy-network
+
+networks:
+  candy-network:
+    driver: bridge

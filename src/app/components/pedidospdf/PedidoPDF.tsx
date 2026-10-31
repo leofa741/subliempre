@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Font, Image } from '@react-pdf/renderer';
 
 // Registramos fuentes elegantes (Times-Roman para títulos, Helvetica para texto)
 Font.register({
@@ -24,6 +24,13 @@ const styles = StyleSheet.create({
   },
   brandSection: {
     flexDirection: 'column',
+  },
+  // ✅ NUEVO: Estilo para el logo
+  logo: {
+    width: 120, // Ajusta este valor (ej: 100, 150) para hacerlo más grande o más chico
+    height: 'auto',
+    marginBottom: 8,
+    objectFit: 'contain',
   },
   brandName: {
     fontSize: 28,
@@ -180,6 +187,9 @@ export const PedidoPDF = ({ pedido }: PedidoPDFProps) => {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.brandSection}>
+            {/* ✅ AQUÍ VA EL LOGO */}
+            <Image src="/img/logo-candy-removebg-preview.png" style={styles.logo} />
+            
             <Text style={styles.brandName}>Candy Ilusiones</Text>
             <Text style={styles.brandTagline}>Productos Personalizados con Amor</Text>
             <Text style={{...styles.clientText, marginTop: 8, fontSize: 9}}>📍 Buenos Aires, Argentina</Text>

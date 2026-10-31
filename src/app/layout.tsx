@@ -13,8 +13,6 @@ import { ToastContainer } from "react-toastify";
 
 import Loader from "./components/loading/Loader";
 import VersionChecker from "./components/version/VersionChecker";
-import { Analytics } from "@vercel/analytics/next"
-
 
 
 
@@ -150,7 +148,7 @@ export default function RootLayout({
               style={{ zIndex: 9999 }}
             />
           </main>
-         <Analytics/>
+        
           <Footer />
         </Providers>
       </body>
