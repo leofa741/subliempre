@@ -10,9 +10,10 @@ import Navbar from "./components/navbar/Navbar";
 import Footer from "./components/footer/Footer";
 import { Providers } from "./providers/Providers";
 import { ToastContainer } from "react-toastify";
-import { Analytics } from "@vercel/analytics/react"
+
 import Loader from "./components/loading/Loader";
 import VersionChecker from "./components/version/VersionChecker";
+import { Analytics } from "@vercel/analytics/next"
 
 
 export const viewport: Viewport = {
@@ -176,7 +177,7 @@ export default function RootLayout({
               style={{ zIndex: 9999 }}
             />
           </main>
-         
+         <Analytics/>
           <Footer />
         </Providers>
       </body>
