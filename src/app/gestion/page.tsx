@@ -32,6 +32,14 @@ const modules = [
         iconBg: 'from-rose-100 to-pink-100',
         href: '/gestion/insumos',
     },
+     {
+        id: 'usuarios',
+        title: 'Base de Usuarios',
+        description: 'Gestiona los usuarios del sistema,tus vendedoras, sus permisos y accesos.',
+        icon: <FaUsers className="text-2xl text-purple-500" />,
+        iconBg: 'from-purple-100 to-fuchsia-100',
+        href: '/gestion/usuarios'
+    },
     {
         id: 'clientes',
         title: 'Base de Clientes',

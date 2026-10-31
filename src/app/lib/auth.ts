@@ -57,6 +57,7 @@ function normalizeRazonSocial(text: string): string {
 }
 
 // ✅ Función para crear cliente automáticamente (E-commerce)
+// ✅ Función para crear cliente automáticamente (E-commerce)
 async function crearClienteAutomatico(userData: {
   name: string;
   lastName: string;
@@ -68,15 +69,16 @@ async function crearClienteAutomatico(userData: {
   img?: string;
 }) {
   try {
+    // 1. Verificar si ya existe por email
     const clienteExistente = await ClienteModel.findOne({ email: userData.email });
     if (clienteExistente) {
       return clienteExistente;
     }
-    // ✅ Lógica inteligente para obtener nombre y apellido
+
+    // 2. Lógica inteligente para nombre y apellido
     const nombreRaw = (userData.name || 'Cliente').trim();
     const apellidoRaw = (userData.lastName || '').trim();
 
-    // Si Google solo mandó un nombre, lo usamos todo como nombre y ponemos 'Cliente' de apellido
     const nombre = nombreRaw || 'Cliente';
     const apellido = apellidoRaw || 'Cliente'; 
     
@@ -86,16 +88,24 @@ async function crearClienteAutomatico(userData: {
     let telefono: string | null = null;
     let telefonoNormalized: string | null = null;
 
+    // 3. Procesar teléfono si existe y es válido
     const phoneTrimmed = userData.phone?.trim();
     if (phoneTrimmed && phoneTrimmed !== '00000000' && /[\d+]/.test(phoneTrimmed)) {
       telefono = phoneTrimmed;
       telefonoNormalized = normalizeTelefono(phoneTrimmed);
+      
+      // Verificar si ese teléfono real ya está en uso
       const yaExiste = await ClienteModel.findOne({ telefonoNormalized });
       if (yaExiste) {
         telefono = null;
-        telefonoNormalized = null;
+        telefonoNormalized = null; // Anulamos para evitar el choque
       }
     }
+
+    // ✅ 4. SOLUCIÓN CLAVE: Generar un valor único ficticio si no hay teléfono real.
+    // Esto evita colisiones con campos 'required' o índices 'unique' en la base de datos.
+    const telefonoFinal = telefono || `SIN_TELEFONO_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const telefonoNormalizedFinal = telefonoNormalized || null;
 
     const clienteData: any = {
       razonSocial,
@@ -106,15 +116,12 @@ async function crearClienteAutomatico(userData: {
       direccion: userData.address || '',
       ciudad: userData.city || 'Buenos Aires',
       provincia: 'Buenos Aires',
-      formaPago: 'transferencia', // Adaptado para e-commerce
+      formaPago: 'transferencia',
       activo: true,
-      origen: 'registro_automatico'
+      origen: 'registro_automatico',
+      telefono: telefonoFinal,
+      telefonoNormalized: telefonoNormalizedFinal
     };
-
-    if (telefono && telefonoNormalized) {
-      clienteData.telefono = telefono;
-      clienteData.telefonoNormalized = telefonoNormalized;
-    }
 
     const nuevoCliente = new ClienteModel(clienteData);
     return await nuevoCliente.save();
@@ -122,6 +129,7 @@ async function crearClienteAutomatico(userData: {
   } catch (error: any) {
     console.error('❌ Error creando cliente automático:', error);
 
+    // 5. Fallback de emergencia si algo más falla (ej. duplicado de email por condición de carrera)
     if (error.code === 11000 || error.statusCode === 409) {
       try {
         const nombre = (userData.name || 'Cliente').trim();
@@ -134,7 +142,7 @@ async function crearClienteAutomatico(userData: {
           nombre,
           apellido,
           email: userData.email,
-          telefono: null,
+          telefono: `SIN_TELEFONO_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`, // ✅ También único aquí
           telefonoNormalized: null,
           direccion: userData.address || '',
           ciudad: userData.city || 'Buenos Aires',

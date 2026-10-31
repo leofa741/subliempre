@@ -205,7 +205,7 @@ function PageContent() {
     
       {/* HERO */}
       <div className="relative w-full left-0 right-0 overflow-hidden">
-        <VideoHero videoSrc="/videos/header4.mp4" overlayOpacity={0.2}>
+        <VideoHero videoSrc="/videos/header1.mp4" overlayOpacity={0.2}>
           <div className="max-w-7xl mx-auto px-6 pt-32 sm:pt-40 pb-20">
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-8 items-center mt-12">
               <div className="text-left space-y-8">
