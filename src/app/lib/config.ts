@@ -2,7 +2,7 @@
 
 export const siteConfig = {
   // 🏢 Datos de la Marca
-  companyUrl : 'https://www.candyilusiones.com.ar',
+  companyUrl : 'www.candyilusiones.com.ar',
   companyName: 'Candy Ilusiones',
   description: 'Productos personalizados con amor para hacer tus celebraciones inolvidables. Sublimación, decoración y detalles únicos en 3D.',
   

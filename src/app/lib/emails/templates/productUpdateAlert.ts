@@ -61,7 +61,7 @@ export const getProductUpdateAlertTemplate = (
     <p style="margin: 0;">© ${new Date().getFullYear()} ${brandName} · Hecho con amor 💜</p>
   </div>
    <p style="font-size: 14px; color: #78716C; text-align: center; margin-top: 24px;">
-      Desarrollado por <a href="${tumarcaUrl}" style="color: ${brandColor};">www.tumarca.ar</a> <a href="${baseUrl}/perfil/alertas" style="color: ${brandColor};">Gestiona tus alertas aquí</a>.
+      Desarrollado por <a href="${tumarcaUrl}" style="color: ${brandColor};">www.tumarca.ar</a>
     </p>
 </body>
 </html>`,
