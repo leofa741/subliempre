@@ -15,10 +15,10 @@ const AlertaSchema = new Schema({
     index: true
   },
 
-  // 🎯 Tipo de alerta
+   // 🎯 Tipo de alerta
   tipo: {
     type: String,
-    enum: ['propiedad', 'busqueda'],
+    enum: ['propiedad', 'busqueda', 'novedades'], // <--- AGREGA 'novedades' AQUÍ
     required: true
   },
 

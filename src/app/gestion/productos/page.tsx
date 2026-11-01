@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import Swal from 'sweetalert2';
 import { 
   FaBoxOpen, FaPlus, FaEdit, FaTrash, FaExclamationTriangle, 
-  FaCheckCircle, FaSearch, FaFilter, FaStar
+  FaCheckCircle, FaSearch, FaFilter, FaStar, FaChevronLeft, FaChevronRight
 } from 'react-icons/fa';
 
 interface Product {
@@ -34,6 +34,10 @@ export default function DashboardProductosPage() {
   const [filterCategory, setFilterCategory] = useState('all');
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
+  // 📄 PAGINACIÓN
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   useEffect(() => {
     if (status === 'loading') return;
     if (status === 'unauthenticated') {
@@ -56,6 +60,11 @@ export default function DashboardProductosPage() {
 
     fetchProducts();
   }, [status, session, router]);
+
+  // 🔍 BÚSQUEDA: Resetear a página 1 cuando cambian los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterCategory]);
 
   const fetchProducts = async () => {
     try {
@@ -157,6 +166,7 @@ export default function DashboardProductosPage() {
           timer: 2000,
           showConfirmButton: false
         });
+        setCurrentPage(1); // 📄 PAGINACIÓN: Volver a la página 1 al eliminar
         fetchProducts();
       } else {
         const errorData = await res.json();
@@ -177,11 +187,18 @@ export default function DashboardProductosPage() {
   const formatPrice = (amount: number) => 
     new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(amount);
 
+  // 🔍 BÚSQUEDA Y FILTRADO
   const filteredProducts = products.filter(prod => {
     const matchesSearch = prod.nombre.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory === 'all' || prod.categoria === filterCategory;
+    const matchesCategory = filterCategory === 'all' || prod.categoria.toLowerCase() === filterCategory.toLowerCase();
     return matchesSearch && matchesCategory;
   });
+
+  // 📄 PAGINACIÓN: Lógica para obtener solo los elementos de la página actual
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentProducts = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
 
   const totalProductos = products.length;
   const productosEnPerdida = products.filter(p => p.estaEnPerdida).length;
@@ -204,8 +221,10 @@ export default function DashboardProductosPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8 pb-24">
-      <div className="max-w-7xl mx-auto mt-52 space-y-6 sm:space-y-8">
+    // 🛡️ BLINDADO: overflow-x-hidden y pb-24 para evitar scroll horizontal
+    <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8 pb-24 overflow-x-hidden">
+      {/* ✅ CORREGIDO: mt-8 sm:mt-12 en lugar de mt-52 */}
+      <div className="max-w-7xl mx-auto mt-52 sm:mt-52 space-y-6 sm:space-y-8">
         
         {/* ─── HEADER ─── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -268,8 +287,16 @@ export default function DashboardProductosPage() {
               placeholder="Buscar producto por nombre..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 rounded-xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all text-base"
+              className="w-full pl-11 pr-10 py-3 rounded-xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all text-base"
             />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 hover:text-rose-500 transition-colors text-xl font-bold"
+              >
+                ×
+              </button>
+            )}
           </div>
           <div className="relative sm:w-64">
             <FaFilter className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
@@ -295,7 +322,7 @@ export default function DashboardProductosPage() {
           <div className="flex items-center justify-between px-1">
             <h2 className="text-lg font-serif font-medium text-stone-800">Listado</h2>
             <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-xs font-bold">
-              {filteredProducts.length} encontrados
+              {filteredProducts.length} {searchTerm || filterCategory !== 'all' ? 'encontrados' : 'registrados'}
             </span>
           </div>
 
@@ -303,10 +330,11 @@ export default function DashboardProductosPage() {
             <div className="bg-white/60 rounded-2xl p-8 text-center text-stone-400 border border-rose-100">
               <div className="flex justify-center mb-3"><FaSearch className="text-3xl text-rose-300" /></div>
               <p className="font-medium text-stone-600">No se encontraron productos</p>
-              <p className="text-sm mt-1">Intenta ajustar los filtros.</p>
+              <p className="text-sm mt-1">Intenta ajustar los filtros o la búsqueda.</p>
             </div>
           ) : (
-            filteredProducts.map((prod) => (
+            // 📄 PAGINACIÓN: Usamos currentProducts en lugar de filteredProducts
+            currentProducts.map((prod) => (
               <div key={prod._id} className="bg-white rounded-2xl p-4 border border-rose-100 shadow-sm active:scale-[0.99] transition-transform">
                 {/* Cabecera de la tarjeta */}
                 <div className="flex gap-4 mb-4">
@@ -320,7 +348,7 @@ export default function DashboardProductosPage() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-stone-800 text-base truncate">{prod.nombre}</h3>
+                    <h3 className="font-bold text-stone-800 text-base break-words leading-tight">{prod.nombre}</h3>
                     <p className="text-xs text-stone-500 truncate mt-0.5">{prod.descripcion}</p>
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       <span className="inline-flex px-2 py-0.5 rounded-md bg-stone-100 text-stone-600 text-[10px] font-bold uppercase">
@@ -344,11 +372,11 @@ export default function DashboardProductosPage() {
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="bg-rose-50/50 p-3 rounded-xl">
                     <p className="text-[10px] uppercase text-stone-400 font-bold mb-0.5">Costo Prod.</p>
-                    <p className="font-semibold text-stone-700 text-sm">{formatPrice(prod.costoTotalProduccion)}</p>
+                    <p className="font-semibold text-stone-700 text-sm break-words">{formatPrice(prod.costoTotalProduccion)}</p>
                   </div>
                   <div className="bg-rose-50/50 p-3 rounded-xl">
                     <p className="text-[10px] uppercase text-stone-400 font-bold mb-0.5">Precio Venta</p>
-                    <p className="font-bold text-stone-800 text-sm">{formatPrice(prod.precioFinalManual)}</p>
+                    <p className="font-bold text-stone-800 text-sm break-words">{formatPrice(prod.precioFinalManual)}</p>
                   </div>
                   
                   {/* Margen ocupa todo el ancho para destacar */}
@@ -436,7 +464,8 @@ export default function DashboardProductosPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-rose-100">
-                  {filteredProducts.map((prod) => (
+                  {/* 📄 PAGINACIÓN: Usamos currentProducts en lugar de filteredProducts */}
+                  {currentProducts.map((prod) => (
                     <tr key={prod._id} className="group hover:bg-rose-50/30 transition-colors">
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-4">
@@ -449,8 +478,8 @@ export default function DashboardProductosPage() {
                               </div>
                             )}
                           </div>
-                          <div>
-                            <p className="font-bold text-stone-800 text-base">{prod.nombre}</p>
+                          <div className="min-w-0">
+                            <p className="font-bold text-stone-800 text-base break-words">{prod.nombre}</p>
                             <p className="text-xs text-stone-500 truncate max-w-[200px]">{prod.descripcion}</p>
                             <div className="flex gap-2 mt-1">
                               {prod.destacado && <span className="text-[9px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded flex items-center gap-1"><FaStar className="w-2.5 h-2.5" /> DESTACADO</span>}
@@ -528,6 +557,32 @@ export default function DashboardProductosPage() {
             </div>
           )}
         </div>
+
+        {/* 📄 PAGINACIÓN: Controles de navegación (Visible en móvil y escritorio) */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-white/60 backdrop-blur-sm rounded-2xl border border-rose-100">
+            <p className="text-stone-500 text-sm text-center sm:text-left">
+              Página <span className="text-stone-800 font-bold">{currentPage}</span> de <span className="text-stone-800 font-bold">{totalPages}</span>
+            </p>
+            <div className="flex items-center justify-center sm:justify-end gap-3">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-white border border-rose-200 text-stone-600 hover:bg-rose-50 hover:border-rose-300 active:scale-95"
+              >
+                <FaChevronLeft className="w-3.5 h-3.5" /> Anterior
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-white border border-rose-200 text-stone-600 hover:bg-rose-50 hover:border-rose-300 active:scale-95"
+              >
+                Siguiente <FaChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

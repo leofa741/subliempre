@@ -16,7 +16,9 @@ const Icons = {
   Trash: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
   Spinner: () => <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>,
   Edit: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
-  ChevronLeft: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+  ChevronLeft: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>,
+  ChevronRight: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>,
+  Search: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
 };
 
 interface Insumo {
@@ -37,6 +39,11 @@ export default function GestionInsumosPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  // 📄 PAGINACIÓN Y 🔍 BÚSQUEDA
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const itemsPerPage = 15;
 
   const [formData, setFormData] = useState({
     nombre: '',
@@ -93,6 +100,11 @@ export default function GestionInsumosPage() {
     }
   };
 
+  // 🔍 BÚSQUEDA: Resetear a página 1 cuando cambia el término de búsqueda
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -136,6 +148,7 @@ export default function GestionInsumosPage() {
         toast.success('Insumo eliminado correctamente', {
           style: { background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0' }
         });
+        setCurrentPage(1);
         fetchInsumos();
       } else {
         throw new Error('Error al eliminar');
@@ -177,6 +190,8 @@ export default function GestionInsumosPage() {
         });
         setFormData({ nombre: '', categoria: '', costo: '', cantidadPaquete: '', unidadMedida: 'unidades', stockActual: '' });
         setEditingId(null);
+        setSearchTerm(''); // 🔍 BÚSQUEDA: Limpiar búsqueda al guardar nuevo
+        setCurrentPage(1);
         fetchInsumos();
       } else {
         toast.error(data.message || 'Error al guardar', {
@@ -199,6 +214,18 @@ export default function GestionInsumosPage() {
     return costo / cantidad;
   };
 
+  // 🔍 BÚSQUEDA: Filtrar insumos por nombre o categoría
+  const filteredInsumos = insumos.filter(insumo => 
+    insumo.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    insumo.categoria.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // 📄 PAGINACIÓN: Aplicada sobre los resultados filtrados
+  const totalPages = Math.ceil(filteredInsumos.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentInsumos = filteredInsumos.slice(indexOfFirstItem, indexOfLastItem);
+
   if (status === 'loading' || !session) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30">
@@ -208,8 +235,8 @@ export default function GestionInsumosPage() {
   }
 
   return (
-    // 🛡️ BLINDADO: overflow-x-hidden evita cualquier scroll horizontal accidental
     <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8 pb-24 overflow-x-hidden">
+      {/* ✅ CORREGIDO: mt-8 sm:mt-12 en lugar de mt-52 para evitar espacio vacío gigante */}
       <div className="max-w-6xl mx-auto mt-52 sm:mt-52 space-y-6 sm:space-y-8">
         
         {/* ─── HEADER ─── */}
@@ -272,6 +299,7 @@ export default function GestionInsumosPage() {
                 <option value="kg">Kilogramos (kg)</option>
                 <option value="gramos">Gramos (g)</option>
                 <option value="mts">Metros (m)</option>
+                <option value="cm">Centímetros (cm)</option> {/* ✅ NUEVA OPCIÓN AGREGADA */}
                 <option value="hojas">Hojas</option>
               </select>
             </div>
@@ -287,7 +315,7 @@ export default function GestionInsumosPage() {
               <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-1.5 ml-1">Cantidad en el Paquete</label>
               <input type="number" inputMode="decimal" step="0.01" name="cantidadPaquete" value={formData.cantidadPaquete} onChange={handleChange} required
                 className="w-full px-4 py-3.5 rounded-xl sm:rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all text-base"
-                placeholder="Ej: 1000" />
+                placeholder="Ej: 100 (si son 100 cm)" />
             </div>
 
             <div>
@@ -320,31 +348,54 @@ export default function GestionInsumosPage() {
           </form>
         </div>
 
+        {/* 🔍 BARRA DE BÚSQUEDA */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-4 border border-rose-100 shadow-sm">
+          <div className="relative max-w-xl">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400">
+              <Icons.Search />
+            </div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar por nombre o categoría..."
+              className="w-full pl-12 pr-10 py-3 rounded-xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all text-base"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 hover:text-rose-500 transition-colors text-xl font-bold"
+              >
+                ×
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* ═══════════════════════════════════════════════════
-            VISTA MÓVIL: LISTA VERTICAL DE TARJETAS (BLINDADA)
+            VISTA MÓVIL: LISTA VERTICAL DE TARJETAS
             ═══════════════════════════════════════════════════ */}
         <div className="md:hidden space-y-4">
           <div className="flex items-center justify-between px-1">
             <h2 className="text-lg font-serif font-medium text-stone-800">Inventario</h2>
             <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-xs font-bold">
-              {insumos.length} registrados
+              {filteredInsumos.length} {searchTerm ? 'encontrados' : 'registrados'}
             </span>
           </div>
 
-          {insumos.length === 0 ? (
+          {filteredInsumos.length === 0 ? (
             <div className="bg-white/60 rounded-2xl p-8 text-center text-stone-400 border border-rose-100">
-              <div className="flex justify-center mb-3"><Icons.Package /></div>
-              <p className="font-medium text-stone-600">Aún no has registrado ningún insumo.</p>
-              <p className="text-sm mt-1">Completa el formulario de arriba para comenzar.</p>
+              <div className="flex justify-center mb-3"><Icons.Search /></div>
+              <p className="font-medium text-stone-600">
+                {searchTerm ? 'No se encontraron insumos que coincidan.' : 'Aún no has registrado ningún insumo.'}
+              </p>
+              {!searchTerm && <p className="text-sm mt-1">Completa el formulario de arriba para comenzar.</p>}
             </div>
           ) : (
-            insumos.map((insumo) => (
-              // 🛡️ BLINDADO: w-full y overflow-hidden garantizan que la tarjeta no se salga de la pantalla
+            currentInsumos.map((insumo) => (
               <div key={insumo._id} className="w-full bg-white rounded-2xl p-4 border border-rose-100 shadow-sm active:scale-[0.99] transition-transform overflow-hidden">
-                {/* Cabecera de la tarjeta */}
                 <div className="flex justify-between items-start mb-3 gap-2">
                   <div className="min-w-0 flex-1">
-                    {/* 🛡️ BLINDADO: break-words evita que nombres largos estiren la pantalla */}
                     <h3 className="font-bold text-stone-800 text-base break-words">{insumo.nombre}</h3>
                     <span className="inline-flex mt-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wide truncate max-w-full">
                       {insumo.categoria}
@@ -357,7 +408,6 @@ export default function GestionInsumosPage() {
                   </div>
                 </div>
 
-                {/* Datos en grilla 2x2 */}
                 <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
                   <div className="bg-rose-50/50 p-2.5 rounded-xl">
                     <p className="text-[10px] uppercase text-stone-400 font-bold mb-0.5">Costo Paquete</p>
@@ -376,7 +426,6 @@ export default function GestionInsumosPage() {
                   </div>
                 </div>
 
-                {/* Botones de acción SIEMPRE visibles en móvil */}
                 <div className="grid grid-cols-2 gap-3 pt-2 border-t border-rose-100">
                   <button 
                     onClick={() => handleEdit(insumo)} 
@@ -401,15 +450,17 @@ export default function GestionInsumosPage() {
           <div className="p-6 sm:p-8 border-b border-rose-100 flex items-center justify-between">
             <h2 className="text-lg font-serif font-medium text-stone-800">Inventario de Materiales</h2>
             <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-xs font-bold">
-              {insumos.length} registrados
+              {filteredInsumos.length} {searchTerm ? 'encontrados' : 'registrados'}
             </span>
           </div>
 
-          {insumos.length === 0 ? (
+          {filteredInsumos.length === 0 ? (
             <div className="p-12 text-center text-stone-400">
-              <div className="flex justify-center mb-3"><Icons.Package /></div>
-              <p className="mt-4 font-medium">Aún no has registrado ningún insumo.</p>
-              <p className="text-sm mt-1">Completa el formulario de arriba para comenzar.</p>
+              <div className="flex justify-center mb-3"><Icons.Search /></div>
+              <p className="mt-4 font-medium">
+                {searchTerm ? 'No se encontraron insumos que coincidan con tu búsqueda.' : 'Aún no has registrado ningún insumo.'}
+              </p>
+              {!searchTerm && <p className="text-sm mt-1">Completa el formulario de arriba para comenzar.</p>}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -426,7 +477,7 @@ export default function GestionInsumosPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-rose-100">
-                  {insumos.map((insumo) => (
+                  {currentInsumos.map((insumo) => (
                     <tr key={insumo._id} className="hover:bg-rose-50/30 transition-colors group">
                       <td className="px-6 py-4 font-medium text-stone-800">{insumo.nombre}</td>
                       <td className="px-6 py-4">
@@ -474,6 +525,31 @@ export default function GestionInsumosPage() {
             </div>
           )}
         </div>
+
+        {/* 📄 PAGINACIÓN: Controles de navegación (Visible en móvil y escritorio) */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-white/60 backdrop-blur-sm rounded-2xl border border-rose-100">
+            <p className="text-stone-500 text-sm text-center sm:text-left">
+              Página <span className="text-stone-800 font-bold">{currentPage}</span> de <span className="text-stone-800 font-bold">{totalPages}</span>
+            </p>
+            <div className="flex items-center justify-center sm:justify-end gap-3">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-white border border-rose-200 text-stone-600 hover:bg-rose-50 hover:border-rose-300 active:scale-95"
+              >
+                <Icons.ChevronLeft /> Anterior
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-white border border-rose-200 text-stone-600 hover:bg-rose-50 hover:border-rose-300 active:scale-95"
+              >
+                Siguiente <Icons.ChevronRight />
+              </button>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

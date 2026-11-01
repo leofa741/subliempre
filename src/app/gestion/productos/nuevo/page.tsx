@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { useSession } from 'next-auth/react';
@@ -47,12 +47,17 @@ export default function NuevoProductoPage() {
     // Estado del Producto
     const [nombre, setNombre] = useState('');
     const [descripcion, setDescripcion] = useState('');
-    const [categoria, setCategoria] = useState(''); // ✅ Ahora empieza vacío para forzar la elección/escritura
+    const [categoria, setCategoria] = useState('');
 
     // Estado de la Receta (Insumos)
     const [insumosSeleccionados, setInsumosSeleccionados] = useState<InsumoSeleccionado[]>([]);
     const [selectedInsumoId, setSelectedInsumoId] = useState('');
     const [cantidadInsumo, setCantidadInsumo] = useState<number | ''>('');
+
+    // 🔍 Estado del Buscador Premium de Insumos
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     // Estado de Costos y Precios
     const [tiempoMinutos, setTiempoMinutos] = useState<number | ''>(15);
@@ -60,7 +65,7 @@ export default function NuevoProductoPage() {
     const [margenGanancia, setMargenGanancia] = useState<number | ''>(50);
     const [precioManual, setPrecioManual] = useState<number | ''>('');
 
-    // ✅ Estado para Imagen
+    // Estado para Imagen
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string>('');
     const [uploadingImage, setUploadingImage] = useState(false);
@@ -89,6 +94,17 @@ export default function NuevoProductoPage() {
         if (status === 'authenticated') fetchInsumos();
     }, [status, session, router]);
 
+    // 🔹 Cerrar dropdown al hacer clic fuera
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     // ─────────────────────────────────────────────────────────────
     // 🔹 CÁLCULOS EN TIEMPO REAL
     // ─────────────────────────────────────────────────────────────
@@ -111,6 +127,16 @@ export default function NuevoProductoPage() {
     // ─────────────────────────────────────────────────────────────
     // 🔹 HANDLERS
     // ─────────────────────────────────────────────────────────────
+    const filteredInsumos = insumosDisponibles.filter(insumo => 
+        insumo.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const handleSelectInsumo = (insumo: InsumoDB) => {
+        setSelectedInsumoId(insumo._id);
+        setSearchTerm(insumo.nombre);
+        setIsDropdownOpen(false);
+    };
+
     const agregarInsumo = () => {
         if (!selectedInsumoId || !cantidadInsumo) return;
         const insumo = insumosDisponibles.find(i => i._id === selectedInsumoId);
@@ -124,6 +150,7 @@ export default function NuevoProductoPage() {
             { insumoId: insumo._id, nombre: insumo.nombre, unidadMedida: insumo.unidadMedida, costoUnitario, cantidad: Number(cantidadInsumo), subtotal }
         ]);
         setSelectedInsumoId('');
+        setSearchTerm(''); // Limpiar buscador
         setCantidadInsumo('');
     };
 
@@ -134,7 +161,7 @@ export default function NuevoProductoPage() {
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            if (file.size > 5 * 1024 * 1024) { // Max 5MB
+            if (file.size > 5 * 1024 * 1024) {
                 toast.error('La imagen no debe superar los 5MB', { style: { background: '#FFF1F2', color: '#BE185D', border: '1px solid #FECDD3' } });
                 return;
             }
@@ -143,8 +170,9 @@ export default function NuevoProductoPage() {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+      const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
         if (calculos.estaEnPerdida) {
             const confirmacion = window.confirm('⚠️ El precio final está por debajo del costo de producción. ¿Estás segura de que deseas guardarlo de todos modos?');
             if (!confirmacion) return;
@@ -154,9 +182,15 @@ export default function NuevoProductoPage() {
         try {
             let imageUrl = '';
             
-            // ✅ 1. Subir imagen a Cloudinary si existe
+            // 1. Subida de imagen con manejo de errores robusto
             if (imageFile) {
                 setUploadingImage(true);
+                
+                // Verificación extra para móviles: a veces el tamaño se reporta mal
+                if (imageFile.size > 5 * 1024 * 1024) {
+                    throw new Error('La imagen es demasiado pesada (>5MB). Por favor, comprímela o elige otra.');
+                }
+
                 const formDataImg = new FormData();
                 formDataImg.append('image', imageFile);
                 
@@ -167,16 +201,18 @@ export default function NuevoProductoPage() {
                 });
                 
                 const uploadData = await uploadRes.json();
-                if (!uploadRes.ok) throw new Error(uploadData.error || 'Error al subir imagen');
+                if (!uploadRes.ok) {
+                    throw new Error(uploadData.error || `Error al subir imagen (Código: ${uploadRes.status})`);
+                }
                 imageUrl = uploadData.url;
                 setUploadingImage(false);
             }
 
-            // ✅ 2. Guardar producto
+            // 2. Envío de datos del producto
             const payload = {
                 nombre,
                 descripcion,
-                categoria, // ✅ Ahora guarda exactamente lo que escribió o seleccionó
+                categoria,
                 insumos: insumosSeleccionados.map(i => ({ insumoId: i.insumoId, cantidadUsada: i.cantidad })),
                 tiempoManoDeObraMinutos: Number(tiempoMinutos),
                 valorHoraManoDeObra: Number(valorHora),
@@ -197,13 +233,34 @@ export default function NuevoProductoPage() {
             const data = await res.json();
 
             if (res.ok) {
-                toast.success('¡Producto creado con éxito! 🎨', { style: { background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0' } });
+                toast.success('¡Producto creado con éxito! 🎨', { 
+                    style: { background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0' } 
+                });
                 router.push('/gestion/productos');
             } else {
-                toast.error(data.message || 'Error al guardar', { style: { background: '#FFF1F2', color: '#BE185D', border: '1px solid #FECDD3' } });
+                // Lanzamos el error para que lo capture el catch general
+                throw new Error(data.message || `Error del servidor (Código: ${res.status})`);
             }
-        } catch (error) {
-            toast.error('Error de conexión con el servidor', { style: { background: '#FFF1F2', color: '#BE185D', border: '1px solid #FECDD3' } });
+        } catch (error: any) {
+            // 3. Manejo de errores detallado (CRUCIAL para móviles)
+            console.error('🔴 Error detallado al guardar producto:', error);
+            
+            let errorMsg = 'Error de conexión. Verifica tu señal de internet.';
+            
+            if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+                errorMsg = 'Sin conexión a internet o la señal es muy débil. Intenta con Wi-Fi.';
+            } else if (error.message?.includes('504') || error.message?.includes('timeout')) {
+                errorMsg = 'La conexión tardó demasiado. Intenta con una imagen más ligera o usa Wi-Fi.';
+            } else if (error.message?.includes('413')) {
+                errorMsg = 'La imagen es demasiado pesada para la red móvil. Usa una de menos de 2MB.';
+            } else if (error.message) {
+                errorMsg = error.message; // Muestra el error real que venga del backend
+            }
+
+            toast.error(errorMsg, { 
+                style: { background: '#FFF1F2', color: '#BE185D', border: '1px solid #FECDD3' },
+                autoClose: 6000 // 6 segundos para que alcance a leerlo en el celular
+            });
         } finally {
             setSubmitting(false);
             setUploadingImage(false);
@@ -226,8 +283,9 @@ export default function NuevoProductoPage() {
 
     return (
         <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8">
-            <div className="max-w-6xl mt-50 mx-auto">
-                <div className="mb-8 mt-4 sm:mt-8">
+            {/* ✅ CORREGIDO: mt-8 sm:mt-12 en lugar de mt-50 para evitar espacio vacío gigante */}
+            <div className="max-w-6xl mx-auto mt-52 sm:mt-52">
+                <div className="mb-8">
                     <a href="/gestion/productos" className="inline-flex items-center gap-1.5 text-rose-600 hover:text-rose-700 transition-colors">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -254,7 +312,6 @@ export default function NuevoProductoPage() {
                                     <textarea value={descripcion} onChange={e => setDescripcion(e.target.value)} required rows={3} className="w-full px-4 py-3.5 rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all resize-none" placeholder="Detalles del producto..." />
                                 </div>
                                 
-                                {/* ✅ CAMBIO: Input con Datalist para categorías dinámicas */}
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">Categoría</label>
                                     <input 
@@ -277,7 +334,6 @@ export default function NuevoProductoPage() {
                                     </p>
                                 </div>
                                 
-                                {/* ✅ Selector de Imagen */}
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">Imagen del Producto</label>
                                     <div className="relative">
@@ -289,7 +345,6 @@ export default function NuevoProductoPage() {
                                 </div>
                             </div>
                             
-                            {/* ✅ Vista Previa de Imagen */}
                             {imagePreview && (
                                 <div className="mt-4 relative inline-block">
                                     <img src={imagePreview} alt="Vista previa" className="w-32 h-32 object-cover rounded-2xl border-2 border-rose-200 shadow-sm" />
@@ -303,18 +358,79 @@ export default function NuevoProductoPage() {
                         {/* Card: Receta de Insumos */}
                         <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] p-6 sm:p-8 border border-rose-100 shadow-[0_8px_30px_rgb(253,164,175,0.15)]">
                             <h2 className="text-lg font-serif font-medium text-stone-800 mb-6 flex items-center gap-2">🎨 Receta de Materiales</h2>
+                            
+                            {/* 🔍 BUSCADOR PREMIUM DE INSUMOS */}
                             <div className="flex flex-col sm:flex-row gap-3 mb-6 p-4 rounded-2xl bg-rose-50/50 border border-rose-100">
-                                <select value={selectedInsumoId} onChange={e => setSelectedInsumoId(e.target.value)} className="flex-1 px-4 py-3 rounded-xl bg-white border border-rose-200 text-stone-800 focus:outline-none focus:ring-2 focus:ring-pink-200">
-                                    <option value="">Seleccionar insumo...</option>
-                                    {insumosDisponibles.map(insumo => (
-                                        <option key={insumo._id} value={insumo._id}>{insumo.nombre} ({formatPrice(insumo.costo)} / {insumo.cantidadPaquete} {insumo.unidadMedida})</option>
-                                    ))}
-                                </select>
-                                <input type="number" step="0.01" value={cantidadInsumo} onChange={e => setCantidadInsumo(e.target.value ? Number(e.target.value) : '')} className="w-full sm:w-32 px-4 py-3 rounded-xl bg-white border border-rose-200 text-stone-800 focus:outline-none focus:ring-2 focus:ring-pink-200" placeholder="Cant." />
-                                <button type="button" onClick={agregarInsumo} disabled={!selectedInsumoId || !cantidadInsumo} className="px-6 py-3 rounded-xl bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                                <div className="relative flex-1" ref={dropdownRef}>
+                                    <div className="relative">
+                                        <svg className="w-5 h-5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                        <input
+                                            type="text"
+                                            value={searchTerm}
+                                            onChange={(e) => {
+                                                setSearchTerm(e.target.value);
+                                                setSelectedInsumoId('');
+                                                setIsDropdownOpen(true);
+                                            }}
+                                            onFocus={() => setIsDropdownOpen(true)}
+                                            placeholder="Buscar insumo por nombre..."
+                                            className="w-full pl-10 pr-10 py-3 rounded-xl bg-white border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all"
+                                        />
+                                        {searchTerm && (
+                                            <button
+                                                type="button"
+                                                onClick={() => { setSearchTerm(''); setSelectedInsumoId(''); }}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-rose-500 transition-colors"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Dropdown de resultados */}
+                                    {isDropdownOpen && (
+                                        <div className="absolute z-50 w-full mt-2 bg-white rounded-xl border border-rose-100 shadow-[0_8px_30px_rgb(0,0,0,0.12)] max-h-64 overflow-y-auto">
+                                            {filteredInsumos.length === 0 ? (
+                                                <div className="p-4 text-center text-stone-400 text-sm">No se encontraron insumos</div>
+                                            ) : (
+                                                filteredInsumos.map((insumo) => (
+                                                    <button
+                                                        key={insumo._id}
+                                                        type="button"
+                                                        onClick={() => handleSelectInsumo(insumo)}
+                                                        className="w-full text-left px-4 py-3 hover:bg-rose-50 transition-colors border-b border-rose-50 last:border-0 flex flex-col gap-1 group"
+                                                    >
+                                                        <span className="font-medium text-stone-800 group-hover:text-rose-700">{insumo.nombre}</span>
+                                                        <span className="text-xs text-stone-500">
+                                                            {formatPrice(insumo.costo)} / {insumo.cantidadPaquete} {insumo.unidadMedida}
+                                                        </span>
+                                                    </button>
+                                                ))
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <input 
+                                    type="number" 
+                                    step="0.01" 
+                                    value={cantidadInsumo} 
+                                    onChange={e => setCantidadInsumo(e.target.value ? Number(e.target.value) : '')} 
+                                    className="w-full sm:w-32 px-4 py-3 rounded-xl bg-white border border-rose-200 text-stone-800 focus:outline-none focus:ring-2 focus:ring-pink-200 placeholder-stone-400" 
+                                    placeholder="Cant." 
+                                />
+                                <button 
+                                    type="button" 
+                                    onClick={agregarInsumo} 
+                                    disabled={!selectedInsumoId || !cantidadInsumo} 
+                                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
                                     <Icons.Plus /> Agregar
                                 </button>
                             </div>
+
                             <div className="space-y-3">
                                 {insumosSeleccionados.length === 0 ? (
                                     <p className="text-center text-stone-400 py-6 italic text-sm">Aún no has agregado materiales a este producto.</p>

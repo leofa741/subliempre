@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Swal from 'sweetalert2';
-import { FaUsers, FaUserShield, FaUserTie, FaUser, FaSave, FaArrowLeft, FaLock } from 'react-icons/fa';
+import { FaUsers, FaUserShield, FaUserTie, FaUser, FaSave, FaArrowLeft, FaLock, FaSearch, FaUserCog } from 'react-icons/fa';
 
 interface User {
   _id: string;
@@ -22,6 +22,7 @@ export default function GestionUsuariosPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -69,6 +70,30 @@ export default function GestionUsuariosPage() {
       setLoading(false);
     }
   };
+
+  // 🔍 SEPARACIÓN INTELIGENTE: Dividimos los usuarios en 2 grupos
+  const { personal, clientes } = useMemo(() => {
+    const term = searchTerm.toLowerCase().trim();
+    
+    const filterByTerm = (u: User) => {
+      if (!term) return true;
+      return (
+        u.name.toLowerCase().includes(term) ||
+        u.lastName.toLowerCase().includes(term) ||
+        u.email.toLowerCase().includes(term)
+      );
+    };
+
+    const personalList = users.filter(u => 
+      ['admin', 'superadmin', 'vendedor'].includes(u.role)
+    ).filter(filterByTerm);
+
+    const clientesList = users.filter(u => 
+      ['user', 'cliente'].includes(u.role) || !u.role
+    ).filter(filterByTerm);
+
+    return { personal: personalList, clientes: clientesList };
+  }, [users, searchTerm]);
 
   const handleRoleChange = async (userId: string, newRole: string, currentRole: string) => {
     if (userId === session?.user?.id) {
@@ -158,6 +183,175 @@ export default function GestionUsuariosPage() {
     }
   };
 
+  // 🎨 Componente reutilizable para renderizar la tarjeta de un usuario (Móvil)
+  const renderUserCard = (user: User) => {
+    const esUsuarioActual = user._id === session?.user?.id;
+    
+    return (
+      <div key={user._id} className="w-full bg-white rounded-2xl p-4 border border-rose-100 shadow-sm active:scale-[0.99] transition-transform overflow-hidden">
+        <div className="flex items-center gap-3 mb-3">
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm border flex-shrink-0 ${
+            esUsuarioActual 
+              ? 'bg-gradient-to-br from-rose-200 to-pink-200 text-rose-700 border-rose-300' 
+              : 'bg-gradient-to-br from-rose-100 to-pink-100 text-rose-600 border-rose-200'
+          }`}>
+            {user.name?.charAt(0) || 'U'}{user.lastName?.charAt(0) || ''}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-bold text-stone-800 text-base break-words leading-tight">
+                {user.name} {user.lastName}
+              </p>
+              {esUsuarioActual && (
+                <span className="text-[9px] font-bold text-rose-600 bg-rose-100 px-2 py-0.5 rounded-full border border-rose-200 uppercase">
+                  Tú
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-stone-500 break-all mt-0.5">{user.email}</p>
+            <p className="text-[10px] text-stone-400 mt-0.5">{user.google ? 'Registrado con Google' : 'Registro manual'}</p>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <p className="text-[10px] uppercase text-stone-400 font-bold mb-1.5 ml-1">Rol Actual</p>
+          <div className="inline-block">
+            {getRoleBadge(user.role)}
+          </div>
+        </div>
+
+        {esUsuarioActual ? (
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-stone-50 border border-stone-200 text-stone-500 text-sm">
+            <FaLock className="w-4 h-4 flex-shrink-0 text-stone-400" />
+            <span className="font-medium">No puedes modificar tu propio rol por seguridad.</span>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div>
+              <p className="text-[10px] uppercase text-stone-400 font-bold mb-1.5 ml-1">Asignar Nuevo Rol</p>
+              <select 
+                id={`role-select-${user._id}`}
+                defaultValue={user.role}
+                className="w-full px-4 py-3.5 rounded-xl bg-rose-50/50 border border-rose-200 text-stone-800 text-base focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all appearance-none"
+              >
+                <option value="user">Cliente (user)</option>
+                <option value="vendedor">Vendedor</option>
+                <option value="admin">Administrador</option>
+                {session?.user?.role === 'superadmin' && (
+                  <option value="superadmin">Superadministrador</option>
+                )}
+              </select>
+            </div>
+            <button 
+              onClick={() => {
+                const select = document.getElementById(`role-select-${user._id}`) as HTMLSelectElement;
+                handleRoleChange(user._id, select.value, user.role);
+              }}
+              disabled={savingId === user._id}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-rose-400 to-pink-500 text-white text-sm font-bold shadow-md hover:shadow-lg active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {savingId === user._id ? (
+                <svg className="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <FaSave className="w-4 h-4" />
+              )}
+              Guardar Cambios
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // 🎨 Componente reutilizable para renderizar la fila de un usuario (Escritorio)
+  const renderUserRow = (user: User) => {
+    const esUsuarioActual = user._id === session?.user?.id;
+    
+    return (
+      <tr 
+        key={user._id} 
+        className={`group transition-colors ${
+          esUsuarioActual 
+            ? 'bg-rose-50/40 border-l-4 border-l-rose-400' 
+            : 'hover:bg-rose-50/30'
+        }`}
+      >
+        <td className="px-6 py-5">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border flex-shrink-0 ${
+              esUsuarioActual 
+                ? 'bg-gradient-to-br from-rose-200 to-pink-200 text-rose-700 border-rose-300' 
+                : 'bg-gradient-to-br from-rose-100 to-pink-100 text-rose-600 border-rose-200'
+            }`}>
+              {user.name?.charAt(0) || 'U'}{user.lastName?.charAt(0) || ''}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-bold text-stone-800 text-sm break-words">{user.name} {user.lastName}</p>
+                {esUsuarioActual && (
+                  <span className="text-[9px] font-bold text-rose-600 bg-rose-100 px-2 py-0.5 rounded-full border border-rose-200 uppercase">
+                    Tú
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] text-stone-400 mt-0.5">{user.google ? 'Registrado con Google' : 'Registro manual'}</p>
+            </div>
+          </div>
+        </td>
+        <td className="px-6 py-5 text-sm text-stone-600 break-all">{user.email}</td>
+        <td className="px-6 py-5 text-center">{getRoleBadge(user.role)}</td>
+        <td className="px-6 py-5">
+          {esUsuarioActual ? (
+            <div className="flex items-center gap-2 text-stone-400 text-sm italic bg-stone-100 px-3 py-2 rounded-xl border border-stone-200 w-full sm:w-auto">
+              <FaLock className="w-3 h-3" />
+              <span>Bloqueado</span>
+            </div>
+          ) : (
+            <select 
+              id={`role-select-desktop-${user._id}`}
+              defaultValue={user.role}
+              className="w-full sm:w-48 px-3 py-2.5 rounded-xl bg-white border border-rose-200 text-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all"
+            >
+              <option value="user">Cliente (user)</option>
+              <option value="vendedor">Vendedor</option>
+              <option value="admin">Administrador</option>
+              {session?.user?.role === 'superadmin' && (
+                <option value="superadmin">Superadministrador</option>
+              )}
+            </select>
+          )}
+        </td>
+        <td className="px-6 py-5 text-right">
+          {esUsuarioActual ? (
+            <span className="text-xs text-stone-400 italic">—</span>
+          ) : (
+            <button 
+              onClick={() => {
+                const select = document.getElementById(`role-select-desktop-${user._id}`) as HTMLSelectElement;
+                handleRoleChange(user._id, select.value, user.role);
+              }}
+              disabled={savingId === user._id}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-400 to-pink-500 text-white text-sm font-bold shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {savingId === user._id ? (
+                <svg className="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <FaSave className="w-4 h-4" />
+              )}
+              Guardar
+            </button>
+          )}
+        </td>
+      </tr>
+    );
+  };
+
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30">
@@ -173,8 +367,8 @@ export default function GestionUsuariosPage() {
   }
 
   return (
-    // 🛡️ BLINDADO: overflow-x-hidden y pb-24 para evitar scroll horizontal y dar espacio al final
     <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8 pb-24 overflow-x-hidden">
+      {/* ✅ CORREGIDO: mt-8 sm:mt-12 en lugar de mt-52 */}
       <div className="max-w-6xl mx-auto mt-52 sm:mt-52 space-y-6 sm:space-y-8">
         
         {/* Header */}
@@ -184,15 +378,37 @@ export default function GestionUsuariosPage() {
               <FaArrowLeft className="w-4 h-4" /> Volver al Panel
             </a>
             <h1 className="text-2xl sm:text-4xl font-serif font-medium text-stone-800">
-              Gestión de Roles
+              Gestión de Usuarios
             </h1>
             <p className="text-stone-500 font-light text-sm sm:text-base mt-1">
-              Asigna permisos de administrador o vendedor a los usuarios registrados.
+              Administra el personal del sistema y tu base de clientas por separado.
             </p>
           </div>
           <div className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/80 border border-rose-200 shadow-sm">
             <FaUsers className="text-rose-400" />
-            <span className="text-sm font-bold text-stone-600">{users.length} Usuarios</span>
+            <span className="text-sm font-bold text-stone-600">{users.length} Total</span>
+          </div>
+        </div>
+
+        {/* 🔍 BARRA DE BÚSQUEDA */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-4 border border-rose-100 shadow-sm">
+          <div className="relative max-w-xl">
+            <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar por nombre, apellido o email..."
+              className="w-full pl-11 pr-10 py-3 rounded-xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all text-base"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 hover:text-rose-500 transition-colors text-xl font-bold"
+              >
+                ×
+              </button>
+            )}
           </div>
         </div>
 
@@ -209,213 +425,137 @@ export default function GestionUsuariosPage() {
         </div>
 
         {/* ═══════════════════════════════════════════════════
-            VISTA MÓVIL: LISTA VERTICAL DE TARJETAS (BLINDADA)
+            SECCIÓN 1: PERSONAL DEL SISTEMA (Admins, Vendedores)
             ═══════════════════════════════════════════════════ */}
-        <div className="md:hidden space-y-4">
-          {users.length === 0 ? (
-            <div className="p-12 text-center bg-white/60 rounded-2xl border border-rose-100">
-              <FaUsers className="w-12 h-12 text-rose-300 mx-auto mb-4" />
-              <p className="text-stone-500 font-medium">No hay usuarios registrados aún.</p>
+        <section className="space-y-4">
+          <div className="flex items-center justify-between gap-3 px-1">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-stone-100 to-stone-200 border border-stone-200 flex items-center justify-center">
+                <FaUserCog className="w-5 h-5 text-stone-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-serif font-bold text-stone-800">Personal del Sistema</h2>
+                <p className="text-xs text-stone-500">Administradores, superadmins y vendedores con acceso al panel.</p>
+              </div>
             </div>
-          ) : (
-            users.map((user) => {
-              const esUsuarioActual = user._id === session?.user?.id;
-              
-              return (
-                <div key={user._id} className="w-full bg-white rounded-2xl p-4 border border-rose-100 shadow-sm active:scale-[0.99] transition-transform overflow-hidden">
-                  {/* Cabecera: Avatar + Nombre */}
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm border flex-shrink-0 ${
-                      esUsuarioActual 
-                        ? 'bg-gradient-to-br from-rose-200 to-pink-200 text-rose-700 border-rose-300' 
-                        : 'bg-gradient-to-br from-rose-100 to-pink-100 text-rose-600 border-rose-200'
-                    }`}>
-                      {user.name?.charAt(0) || 'U'}{user.lastName?.charAt(0) || ''}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-bold text-stone-800 text-base break-words leading-tight">
-                          {user.name} {user.lastName}
+            <span className="px-3 py-1 rounded-full bg-stone-100 text-stone-700 text-xs font-bold border border-stone-200">
+              {personal.length} {personal.length === 1 ? 'persona' : 'personas'}
+            </span>
+          </div>
+
+          {/* VISTA MÓVIL: PERSONAL */}
+          <div className="md:hidden space-y-4">
+            {personal.length === 0 ? (
+              <div className="p-8 text-center bg-white/60 rounded-2xl border border-stone-200">
+                <FaUserCog className="w-10 h-10 text-stone-300 mx-auto mb-3" />
+                <p className="text-stone-500 font-medium">
+                  {searchTerm ? 'No se encontró personal con ese criterio.' : 'No hay personal registrado aún.'}
+                </p>
+              </div>
+            ) : (
+              personal.map(renderUserCard)
+            )}
+          </div>
+
+          {/* VISTA ESCRITORIO: PERSONAL */}
+          <div className="hidden md:block bg-white/80 backdrop-blur-xl rounded-[2rem] border border-stone-200 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-stone-50 text-stone-500 text-xs uppercase tracking-wider font-bold border-b border-stone-200">
+                    <th className="px-6 py-5">Usuario</th>
+                    <th className="px-6 py-5">Email</th>
+                    <th className="px-6 py-5 text-center">Rol Actual</th>
+                    <th className="px-6 py-5">Asignar Nuevo Rol</th>
+                    <th className="px-6 py-5 text-right">Acción</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {personal.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="p-12 text-center">
+                        <FaUserCog className="w-10 h-10 text-stone-300 mx-auto mb-3" />
+                        <p className="text-stone-500 font-medium">
+                          {searchTerm ? 'No se encontró personal con ese criterio.' : 'No hay personal registrado aún.'}
                         </p>
-                        {esUsuarioActual && (
-                          <span className="text-[9px] font-bold text-rose-600 bg-rose-100 px-2 py-0.5 rounded-full border border-rose-200 uppercase">
-                            Tú
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-stone-500 break-all mt-0.5">{user.email}</p>
-                      <p className="text-[10px] text-stone-400 mt-0.5">{user.google ? 'Registrado con Google' : 'Registro manual'}</p>
-                    </div>
-                  </div>
-
-                  {/* Rol Actual */}
-                  <div className="mb-4">
-                    <p className="text-[10px] uppercase text-stone-400 font-bold mb-1.5 ml-1">Rol Actual</p>
-                    <div className="inline-block">
-                      {getRoleBadge(user.role)}
-                    </div>
-                  </div>
-
-                  {/* Área de Acción */}
-                  {esUsuarioActual ? (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-stone-50 border border-stone-200 text-stone-500 text-sm">
-                      <FaLock className="w-4 h-4 flex-shrink-0 text-stone-400" />
-                      <span className="font-medium">No puedes modificar tu propio rol por seguridad.</span>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-[10px] uppercase text-stone-400 font-bold mb-1.5 ml-1">Asignar Nuevo Rol</p>
-                        <select 
-                          id={`role-select-${user._id}`}
-                          defaultValue={user.role}
-                          className="w-full px-4 py-3.5 rounded-xl bg-rose-50/50 border border-rose-200 text-stone-800 text-base focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all appearance-none"
-                        >
-                          <option value="user">Cliente (user)</option>
-                          <option value="vendedor">Vendedor</option>
-                          <option value="admin">Administrador</option>
-                          {session?.user?.role === 'superadmin' && (
-                            <option value="superadmin">Superadministrador</option>
-                          )}
-                        </select>
-                      </div>
-                      <button 
-                        onClick={() => {
-                          const select = document.getElementById(`role-select-${user._id}`) as HTMLSelectElement;
-                          handleRoleChange(user._id, select.value, user.role);
-                        }}
-                        disabled={savingId === user._id}
-                        className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-rose-400 to-pink-500 text-white text-sm font-bold shadow-md hover:shadow-lg active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {savingId === user._id ? (
-                          <svg className="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                        ) : (
-                          <FaSave className="w-4 h-4" />
-                        )}
-                        Guardar Cambios
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* ═══════════════════════════════════════════════════
-            VISTA ESCRITORIO: TABLA (Oculta en móvil)
-            ═══════════════════════════════════════════════════ */}
-        <div className="hidden md:block bg-white/80 backdrop-blur-xl rounded-[2rem] border border-rose-100 shadow-[0_8px_30px_rgb(253,164,175,0.15)] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-rose-50/50 text-stone-500 text-xs uppercase tracking-wider font-bold border-b border-rose-100">
-                  <th className="px-6 py-5">Usuario</th>
-                  <th className="px-6 py-5">Email</th>
-                  <th className="px-6 py-5 text-center">Rol Actual</th>
-                  <th className="px-6 py-5">Asignar Nuevo Rol</th>
-                  <th className="px-6 py-5 text-right">Acción</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-rose-100">
-                {users.map((user) => {
-                  const esUsuarioActual = user._id === session?.user?.id;
-                  
-                  return (
-                    <tr 
-                      key={user._id} 
-                      className={`group transition-colors ${
-                        esUsuarioActual 
-                          ? 'bg-rose-50/40 border-l-4 border-l-rose-400' 
-                          : 'hover:bg-rose-50/30'
-                      }`}
-                    >
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border flex-shrink-0 ${
-                            esUsuarioActual 
-                              ? 'bg-gradient-to-br from-rose-200 to-pink-200 text-rose-700 border-rose-300' 
-                              : 'bg-gradient-to-br from-rose-100 to-pink-100 text-rose-600 border-rose-200'
-                          }`}>
-                            {user.name?.charAt(0) || 'U'}{user.lastName?.charAt(0) || ''}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-bold text-stone-800 text-sm break-words">{user.name} {user.lastName}</p>
-                              {esUsuarioActual && (
-                                <span className="text-[9px] font-bold text-rose-600 bg-rose-100 px-2 py-0.5 rounded-full border border-rose-200 uppercase">
-                                  Tú
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[10px] text-stone-400 mt-0.5">{user.google ? 'Registrado con Google' : 'Registro manual'}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5 text-sm text-stone-600 break-all">{user.email}</td>
-                      <td className="px-6 py-5 text-center">{getRoleBadge(user.role)}</td>
-                      <td className="px-6 py-5">
-                        {esUsuarioActual ? (
-                          <div className="flex items-center gap-2 text-stone-400 text-sm italic bg-stone-100 px-3 py-2 rounded-xl border border-stone-200 w-full sm:w-auto">
-                            <FaLock className="w-3 h-3" />
-                            <span>Bloqueado</span>
-                          </div>
-                        ) : (
-                          <select 
-                            id={`role-select-desktop-${user._id}`}
-                            defaultValue={user.role}
-                            className="w-full sm:w-48 px-3 py-2.5 rounded-xl bg-white border border-rose-200 text-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all"
-                          >
-                            <option value="user">Cliente (user)</option>
-                            <option value="vendedor">Vendedor</option>
-                            <option value="admin">Administrador</option>
-                            {session?.user?.role === 'superadmin' && (
-                              <option value="superadmin">Superadministrador</option>
-                            )}
-                          </select>
-                        )}
-                      </td>
-                      <td className="px-6 py-5 text-right">
-                        {esUsuarioActual ? (
-                          <span className="text-xs text-stone-400 italic">—</span>
-                        ) : (
-                          <button 
-                            onClick={() => {
-                              const select = document.getElementById(`role-select-desktop-${user._id}`) as HTMLSelectElement;
-                              handleRoleChange(user._id, select.value, user.role);
-                            }}
-                            disabled={savingId === user._id}
-                            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-400 to-pink-500 text-white text-sm font-bold shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {savingId === user._id ? (
-                              <svg className="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                            ) : (
-                              <FaSave className="w-4 h-4" />
-                            )}
-                            Guardar
-                          </button>
-                        )}
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          
-          {users.length === 0 && (
-            <div className="p-12 text-center">
-              <FaUsers className="w-12 h-12 text-rose-300 mx-auto mb-4" />
-              <p className="text-stone-500 font-medium">No hay usuarios registrados aún.</p>
+                  ) : (
+                    personal.map(renderUserRow)
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
-        </div>
+          </div>
+        </section>
+
+        {/* ═══════════════════════════════════════════════════
+            SECCIÓN 2: CLIENTES (user, cliente)
+            ═══════════════════════════════════════════════════ */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between gap-3 px-1">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-100 to-pink-100 border border-rose-200 flex items-center justify-center">
+                <FaUsers className="w-5 h-5 text-rose-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-serif font-bold text-stone-800">Base de Clientes</h2>
+                <p className="text-xs text-stone-500">Todas las clientas registradas en tu tienda online.</p>
+              </div>
+            </div>
+            <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-xs font-bold border border-rose-200">
+              {clientes.length} {clientes.length === 1 ? 'clienta' : 'clientas'}
+            </span>
+          </div>
+
+          {/* VISTA MÓVIL: CLIENTES */}
+          <div className="md:hidden space-y-4">
+            {clientes.length === 0 ? (
+              <div className="p-8 text-center bg-white/60 rounded-2xl border border-rose-100">
+                <FaUsers className="w-10 h-10 text-rose-300 mx-auto mb-3" />
+                <p className="text-stone-500 font-medium">
+                  {searchTerm ? 'No se encontraron clientas con ese criterio.' : 'Aún no hay clientas registradas.'}
+                </p>
+                <p className="text-xs text-stone-400 mt-1">Las clientas se crean automáticamente al registrarse en la tienda.</p>
+              </div>
+            ) : (
+              clientes.map(renderUserCard)
+            )}
+          </div>
+
+          {/* VISTA ESCRITORIO: CLIENTES */}
+          <div className="hidden md:block bg-white/80 backdrop-blur-xl rounded-[2rem] border border-rose-100 shadow-[0_8px_30px_rgb(253,164,175,0.15)] overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-rose-50/50 text-stone-500 text-xs uppercase tracking-wider font-bold border-b border-rose-100">
+                    <th className="px-6 py-5">Usuario</th>
+                    <th className="px-6 py-5">Email</th>
+                    <th className="px-6 py-5 text-center">Rol Actual</th>
+                    <th className="px-6 py-5">Asignar Nuevo Rol</th>
+                    <th className="px-6 py-5 text-right">Acción</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-rose-100">
+                  {clientes.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="p-12 text-center">
+                        <FaUsers className="w-10 h-10 text-rose-300 mx-auto mb-3" />
+                        <p className="text-stone-500 font-medium">
+                          {searchTerm ? 'No se encontraron clientas con ese criterio.' : 'Aún no hay clientas registradas.'}
+                        </p>
+                        <p className="text-xs text-stone-400 mt-1">Las clientas se crean automáticamente al registrarse en la tienda.</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    clientes.map(renderUserRow)
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
       </div>
     </div>
   );

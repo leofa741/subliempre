@@ -3,25 +3,76 @@ import connectDB from '@/app/lib/mongoose';
 import ProductoModel from '@/app/models/Producto';
 import InsumoModel from '@/app/models/Insumo';
 import { verifyAdmin } from '@/app/lib/auth';
+import AlertaModel from '@/app/models/Alerta';
+import { getProductUpdateAlertTemplate } from '@/app/lib/emails/templates/productUpdateAlert';
+import { emailTransporter } from '@/app/lib/emails/transporter';
+import { getNewProductAlertTemplate } from '@/app/lib/emails/templates/newProductAlert';
 
-// ✅ GET: Obtener lista de productos
-export async function GET(req: NextRequest) {
-    try {
-        const admin = await verifyAdmin(req);
-        if (!admin) {
-            return NextResponse.json({ message: 'No autorizado' }, { status: 403 });
-        }
 
-        await connectDB();
-        const productos = await ProductoModel.find({ activo: true })
-            .sort({ createdAt: -1 })
-            .select('-__v');
 
-        return NextResponse.json({ success: true, productos }, { status: 200 });
-    } catch (error) {
-        console.error('❌ Error obteniendo productos:', error);
-        return NextResponse.json({ message: 'Error interno del servidor' }, { status: 500 });
+
+// Función auxiliar para enviar alertas
+async function enviarAlertasProducto(
+  producto: any,
+  tipo: 'nuevo' | 'actualizado',
+  updatedFields?: string[]
+) {
+  try {
+    const alertasActivas = await AlertaModel.find({
+      tipo: 'novedades',
+      activo: true,
+      eliminado: false
+    }).populate('usuario', 'email name');
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_APP_URL || 'https://www.candyilusiones.com.ar';
+    const productUrl = `${baseUrl}/catalogo?categoria=${encodeURIComponent(producto.categoria)}`;
+
+    let enviados = 0;
+
+    for (const alerta of alertasActivas) {
+      const usuario = alerta.usuario as any;
+      if (!usuario?.email) continue;
+
+      let emailData;
+      
+      if (tipo === 'nuevo') {
+        emailData = getNewProductAlertTemplate(
+          usuario.name || usuario.email.split('@')[0],
+          producto.nombre,
+          producto.categoria,
+          productUrl
+        );
+      } else {
+        emailData = getProductUpdateAlertTemplate(
+          usuario.name || usuario.email.split('@')[0],
+          producto.nombre,
+          producto.categoria,
+          productUrl,
+          updatedFields || []
+        );
+      }
+
+      await emailTransporter.sendMail({
+        from: `"${process.env.BRAND_NAME || 'Candy Ilusiones'}" <${process.env.MAILER_EMAIL}>`,
+        to: usuario.email,
+        subject: emailData.subject,
+        html: emailData.html,
+        text: emailData.text
+      });
+
+      // Actualizar métricas de la alerta
+      await AlertaModel.findByIdAndUpdate(alerta._id, {
+        ultimoEnvio: new Date(),
+        $inc: { totalEnvios: 1 }
+      });
+
+      enviados++;
     }
+
+    console.log(`✅ Alerta de producto ${tipo} enviada a ${enviados} suscriptores.`);
+  } catch (emailError) {
+    console.error(`⚠️ Error enviando alertas de producto ${tipo}:`, emailError);
+  }
 }
 
 // ✅ POST: Crear un nuevo producto
@@ -109,6 +160,9 @@ export async function POST(req: NextRequest) {
             creadoPor: admin.id
         });
 
+        // 🚀 ENVIAR ALERTA DE NUEVO PRODUCTO
+        enviarAlertasProducto(nuevoProducto, 'nuevo');
+
         return NextResponse.json(
             {
                 success: true,
@@ -144,6 +198,12 @@ export async function PUT(req: NextRequest) {
 
         if (!id) {
             return NextResponse.json({ message: 'ID del producto es requerido' }, { status: 400 });
+        }
+
+        // 🔍 Obtener el producto ANTES de actualizarlo (para comparar cambios)
+        const productoAnterior = await ProductoModel.findById(id);
+        if (!productoAnterior) {
+            return NextResponse.json({ message: 'Producto no encontrado' }, { status: 404 });
         }
 
         const body = await req.json();
@@ -230,6 +290,32 @@ export async function PUT(req: NextRequest) {
             return NextResponse.json({ message: 'Producto no encontrado' }, { status: 404 });
         }
 
+        // 🔍 Detectar si cambió el precio o la descripción
+        const updatedFields: string[] = [];
+        
+        if (updateData.precioFinalManual !== undefined) {
+            const precioAnterior = productoAnterior.precioFinalManual;
+            const precioNuevo = updateData.precioFinalManual;
+            
+            if (precioAnterior !== precioNuevo) {
+                updatedFields.push('el precio');
+            }
+        }
+        
+        if (updateData.descripcion !== undefined) {
+            const descripcionAnterior = productoAnterior.descripcion;
+            const descripcionNueva = updateData.descripcion.trim();
+            
+            if (descripcionAnterior !== descripcionNueva) {
+                updatedFields.push('la descripción');
+            }
+        }
+
+        // 🚀 ENVIAR ALERTA SI CAMBIÓ PRECIO O DESCRIPCIÓN
+        if (updatedFields.length > 0) {
+            enviarAlertasProducto(productoActualizado, 'actualizado', updatedFields);
+        }
+
         return NextResponse.json({
             success: true,
             message: 'Producto actualizado exitosamente',
@@ -241,6 +327,28 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ message: 'Error interno del servidor al actualizar el producto' }, { status: 500 });
     }
 }
+
+// ✅ GET: Obtener lista de productos
+export async function GET(req: NextRequest) {
+    try {
+        const admin = await verifyAdmin(req);
+        if (!admin) {
+            return NextResponse.json({ message: 'No autorizado' }, { status: 403 });
+        }
+
+        await connectDB();
+        const productos = await ProductoModel.find({ activo: true })
+            .sort({ createdAt: -1 })
+            .select('-__v');
+
+        return NextResponse.json({ success: true, productos }, { status: 200 });
+    } catch (error) {
+        console.error('❌ Error obteniendo productos:', error);
+        return NextResponse.json({ message: 'Error interno del servidor' }, { status: 500 });
+    }
+}
+
+
 
 // ✅ DELETE: Eliminar un producto
 export async function DELETE(req: NextRequest) {

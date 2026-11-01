@@ -24,7 +24,7 @@ interface Pedido {
   _id: string;
   clienteNombre: string;
   clienteTelefono: string;
-  clienteEmail?: string; // ✅ AGREGADO: Para la alerta por email
+  clienteEmail?: string;
   productos: ProductoPedido[];
   estado: 'pendiente' | 'en_produccion' | 'listo' | 'entregado' | 'cancelado';
   total: number;
@@ -44,17 +44,14 @@ export default function DetallePedidoPage() {
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [downloadingType, setDownloadingType] = useState<'pedido' | 'presupuesto' | null>(null); // 🎯 NUEVO
 
-  // Estados locales para edición
   const [estado, setEstado] = useState<Pedido['estado']>('pendiente');
   const [nuevoPago, setNuevoPago] = useState<string>('');
   const [notas, setNotas] = useState('');
   const [fechaEntrega, setFechaEntrega] = useState('');
-  const [clienteEmail, setClienteEmail] = useState(''); // ✅ AGREGADO
+  const [clienteEmail, setClienteEmail] = useState('');
 
-  // ─────────────────────────────────────────────────────────────
-  // 🔹 CARGA DEL PEDIDO
-  // ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
@@ -71,7 +68,7 @@ export default function DetallePedidoPage() {
           setPedido(data.pedido);
           setEstado(data.pedido.estado);
           setNotas(data.pedido.notas || '');
-          setClienteEmail(data.pedido.clienteEmail || ''); // ✅ AGREGADO
+          setClienteEmail(data.pedido.clienteEmail || '');
           
           if (data.pedido.fechaEntregaEstimada) {
             setFechaEntrega(new Date(data.pedido.fechaEntregaEstimada).toISOString().split('T')[0]);
@@ -92,9 +89,6 @@ export default function DetallePedidoPage() {
     }
   }, [status, session, router, pedidoId]);
 
-  // ─────────────────────────────────────────────────────────────
-  // 🔹 ACCIONES
-  // ─────────────────────────────────────────────────────────────
   const handleSaveChanges = async () => {
     setSaving(true);
     try {
@@ -112,7 +106,7 @@ export default function DetallePedidoPage() {
           seña: nuevaSeña,
           notas,
           fechaEntregaEstimada: fechaEntrega,
-          clienteEmail // ✅ AGREGADO: Se envía al backend
+          clienteEmail
         }),
       });
 
@@ -158,20 +152,26 @@ export default function DetallePedidoPage() {
     }
   };
 
-  const handleDownloadPDF = async () => {
+  // 🎯 FUNCIÓN REUTILIZABLE: Recibe el tipo como parámetro
+  const handleDownloadPDF = async (tipo: 'pedido' | 'presupuesto') => {
     if (!pedido) return;
+    setDownloadingType(tipo);
     try {
-      const blob = await pdf(<PedidoPDF pedido={pedido} />).toBlob();
+      const blob = await pdf(<PedidoPDF pedido={pedido} tipo={tipo} />).toBlob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `Pedido_CandyIlusiones_${pedido._id.slice(-6).toUpperCase()}.pdf`;
+      
+      // 🎯 Nombre del archivo dinámico
+      const prefix = tipo === 'presupuesto' ? 'Presupuesto' : 'Pedido';
+      link.download = `${prefix}_CandyIlusiones_${pedido._id.slice(-6).toUpperCase()}.pdf`;
+      
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      toast.success('¡PDF descargado con éxito! 📄', {
+      toast.success(`¡${prefix} descargado con éxito! 📄`, {
         style: { background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0' }
       });
     } catch (error) {
@@ -179,6 +179,8 @@ export default function DetallePedidoPage() {
       toast.error('No se pudo generar el PDF', {
         style: { background: '#FFF1F2', color: '#BE185D', border: '1px solid #FECDD3' }
       });
+    } finally {
+      setDownloadingType(null);
     }
   };
 
@@ -223,16 +225,17 @@ export default function DetallePedidoPage() {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8">
-      <div className="max-w-6xl mt-50 mx-auto">
+      {/* ✅ CORREGIDO: mt-8 sm:mt-12 en lugar de mt-50 */}
+      <div className="max-w-6xl mx-auto mt-50 sm:mt-52">
         
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4  mb-8">
-          <div className="flex items-center  gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-4">
             <button onClick={() => router.back()} className="p-3 rounded-2xl bg-white/80 border border-rose-200 text-stone-600 hover:bg-rose-50 hover:text-rose-600 transition-all shadow-sm">
               <FaArrowLeft />
             </button>
             <div>
-              <div className="flex items-center gap-3 mb-1">
+              <div className="flex items-center gap-3 mb-1 flex-wrap">
                 <h1 className="text-2xl sm:text-3xl font-serif font-medium text-stone-800">Pedido #{pedido._id.slice(-6).toUpperCase()}</h1>
                 {getStatusBadge(estado)}
               </div>
@@ -240,12 +243,31 @@ export default function DetallePedidoPage() {
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
+          {/* 🎯 NUEVOS BOTONES DE DESCARGA */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <button 
-              onClick={handleDownloadPDF} 
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
+              onClick={() => handleDownloadPDF('presupuesto')} 
+              disabled={downloadingType !== null}
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white border-2 border-rose-300 text-rose-600 font-bold shadow-sm hover:bg-rose-50 hover:border-rose-400 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <FaFilePdf className="text-lg" /> <span>Descargar PDF</span>
+              {downloadingType === 'presupuesto' ? (
+                <FaSpinner className="animate-spin" />
+              ) : (
+                <FaFilePdf className="text-lg" />
+              )}
+              <span>Presupuesto</span>
+            </button>
+            <button 
+              onClick={() => handleDownloadPDF('pedido')} 
+              disabled={downloadingType !== null}
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {downloadingType === 'pedido' ? (
+                <FaSpinner className="animate-spin" />
+              ) : (
+                <FaFilePdf className="text-lg" />
+              )}
+              <span>Pedido</span>
             </button>
             <button onClick={handleDelete} className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white border border-red-200 text-red-600 font-bold shadow-sm hover:bg-red-50 hover:border-red-300 transition-all">
               <FaTrash /> <span>Eliminar</span>
@@ -255,10 +277,9 @@ export default function DetallePedidoPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* COLUMNA IZQUIERDA: DETALLES DEL PEDIDO (2/3) */}
+          {/* COLUMNA IZQUIERDA: DETALLES DEL PEDIDO */}
           <div className="lg:col-span-2 space-y-6">
             
-            {/* Card: Datos de la Clienta */}
             <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] p-6 sm:p-8 border border-rose-100 shadow-[0_8px_30px_rgb(253,164,175,0.15)]">
               <h2 className="text-lg font-serif font-medium text-stone-800 mb-4">Datos de la Clienta</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -273,7 +294,6 @@ export default function DetallePedidoPage() {
                   </a>
                 </div>
                 
-                {/* ✅ NUEVO CAMPO: Email para la alerta */}
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">
                     Email de la Clienta (para enviar alerta cuando esté "Listo")
@@ -289,7 +309,6 @@ export default function DetallePedidoPage() {
               </div>
             </div>
 
-            {/* Card: Productos */}
             <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] p-6 sm:p-8 border border-rose-100 shadow-[0_8px_30px_rgb(253,164,175,0.15)]">
               <h2 className="text-lg font-serif font-medium text-stone-800 mb-4 flex items-center gap-2">
                 <FaBoxOpen className="text-rose-400" /> Productos Solicitados
@@ -307,7 +326,6 @@ export default function DetallePedidoPage() {
               </div>
             </div>
 
-            {/* Card: Notas */}
             <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] p-6 sm:p-8 border border-rose-100 shadow-[0_8px_30px_rgb(253,164,175,0.15)]">
               <h2 className="text-lg font-serif font-medium text-stone-800 mb-4 flex items-center gap-2">
                 <FaStickyNote className="text-rose-400" /> Notas Internas
@@ -318,14 +336,13 @@ export default function DetallePedidoPage() {
             </div>
           </div>
 
-          {/* COLUMNA DERECHA: ACCIONES Y FINANZAS (Sticky) */}
+          {/* COLUMNA DERECHA: ACCIONES Y FINANZAS */}
           <div className="lg:col-span-1">
             <div className="sticky top-8 space-y-6">
               
               <div className="bg-white/90 backdrop-blur-2xl rounded-[2rem] p-6 border border-rose-100 shadow-[0_25px_50px_-12px_rgba(253,164,175,0.3)]">
                 <h3 className="text-lg font-serif font-medium text-stone-800 mb-6 text-center">Gestión del Pedido</h3>
                 
-                {/* Cambiar Estado */}
                 <div className="mb-6">
                   <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">Estado Actual</label>
                   <select value={estado} onChange={e => setEstado(e.target.value as any)}
@@ -338,7 +355,6 @@ export default function DetallePedidoPage() {
                   </select>
                 </div>
 
-                {/* Fecha de Entrega */}
                 <div className="mb-6">
                   <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">Fecha de Entrega</label>
                   <div className="relative">
@@ -350,7 +366,6 @@ export default function DetallePedidoPage() {
 
                 <div className="h-px bg-rose-100 my-6" />
 
-                {/* Resumen Financiero */}
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between text-sm">
                     <span className="text-stone-500">Total del Pedido</span>
@@ -369,7 +384,6 @@ export default function DetallePedidoPage() {
                   </div>
                 </div>
 
-                {/* Registrar Nuevo Pago */}
                 {pedido.saldoPendiente > 0 && pedido.estado !== 'cancelado' && (
                   <div className="mb-6 p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200">
                     <label className="block text-xs font-bold uppercase tracking-wider text-emerald-700 mb-2">Registrar Nuevo Pago ($)</label>
@@ -382,7 +396,6 @@ export default function DetallePedidoPage() {
                   </div>
                 )}
 
-                {/* Botón Guardar */}
                 <button onClick={handleSaveChanges} disabled={saving}
                   className="w-full group relative inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-bold text-sm tracking-wide transition-all duration-500 overflow-hidden bg-gradient-to-r from-rose-400 to-pink-500 text-white shadow-lg shadow-rose-200/50 hover:shadow-xl hover:shadow-rose-300/60 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
                   {!saving && <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />}

@@ -1,263 +1,267 @@
-import { Document, Page, Text, View, StyleSheet, Font, Image } from '@react-pdf/renderer';
+'use client';
 
-// Registramos fuentes elegantes (Times-Roman para títulos, Helvetica para texto)
+import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer';
+import { siteConfig } from '@/app/lib/config';
+
 Font.register({
-  family: 'Times-Roman',
-  fonts: [{ src: 'https://fonts.gstatic.com/s/timesnewroman/v1/TimesNewRoman.ttf' }] // Fallback seguro
+  family: 'Cursive',
+  src: '/fonts/cursive.ttf',
 });
 
 const styles = StyleSheet.create({
   page: {
+    flexDirection: 'column',
+    backgroundColor: '#e0fdfd',
     padding: 40,
-    backgroundColor: '#FFFBF7', // Fondo cremoso
     fontFamily: 'Helvetica',
-    color: '#44403C', // stone-700
+  },
+  watermark: {
+    position: 'absolute',
+    top: '35%',
+    left: '30%',
+    width: 200,
+    opacity: 0.06,
+    transform: 'rotate(-15deg)',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 30,
+    borderBottom: 1,
+    borderColor: '#FCE7F3',
     paddingBottom: 20,
-    borderBottom: 2,
-    borderBottomColor: '#FCE7F3', // rose-100
   },
-  brandSection: {
-    flexDirection: 'column',
-  },
-  // ✅ NUEVO: Estilo para el logo
   logo: {
-    width: 120, // Ajusta este valor (ej: 100, 150) para hacerlo más grande o más chico
+    width: 80,
     height: 'auto',
-    marginBottom: 8,
-    objectFit: 'contain',
   },
   brandName: {
-    fontSize: 28,
-    fontFamily: 'Times-Roman',
-    color: '#BE185D', // rose-700
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  brandTagline: {
-    fontSize: 10,
-    color: '#9D174D', // rose-800
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  documentInfo: {
+    fontFamily: 'Cursive',
+    fontSize: 32,
+    color: '#b985e8',
     textAlign: 'right',
   },
-  docTitle: {
-    fontSize: 18,
-    fontFamily: 'Times-Roman',
-    color: '#BE185D',
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  docDate: {
-    fontSize: 10,
-    color: '#78716C', // stone-500
+  brandSubtitle: {
+    fontSize: 8,
+    color: '#78716C',
+    letterSpacing: 2,
+    textAlign: 'right',
+    marginTop: 4,
   },
   clientSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 30,
-    padding: 15,
-    backgroundColor: '#FFF1F2', // rose-50
-    borderRadius: 8,
-    border: 1,
-    borderColor: '#FCE7F3',
   },
-  clientTitle: {
-    fontSize: 10,
+  clientBox: {
+    backgroundColor: '#FCE7F3',
+    padding: 15,
+    borderRadius: 5,
+    width: '45%',
+  },
+  label: {
+    fontSize: 9,
+    color: '#b985e8',
     fontWeight: 'bold',
-    color: '#BE185D',
-    textTransform: 'uppercase',
-    marginBottom: 8,
+    marginBottom: 5,
     letterSpacing: 1,
   },
-  clientText: {
+  text: {
     fontSize: 11,
     color: '#44403C',
     marginBottom: 4,
   },
-  table: {
-    marginBottom: 30,
+  textLight: {
+    fontSize: 10,
+    color: '#78716C',
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#FCE7F3', // rose-100
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-    marginBottom: 4,
+    borderBottom: 1,
+    borderColor: '#9D174D',
+    paddingBottom: 8,
+    marginBottom: 8,
+    fontWeight: 'bold',
+    fontSize: 9,
+    color: '#9D174D',
+    letterSpacing: 1,
   },
   tableRow: {
     flexDirection: 'row',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
     borderBottom: 1,
-    borderBottomColor: '#FEE2E2', // rose-100
-    fontSize: 11,
-  },
-  col1: { width: '50%', fontWeight: 'bold', color: '#1C1917' },
-  col2: { width: '15%', textAlign: 'center', color: '#57534E' },
-  col3: { width: '15%', textAlign: 'right', color: '#57534E' },
-  col4: { width: '20%', textAlign: 'right', fontWeight: 'bold', color: '#1C1917' },
-  
-  totalsSection: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 10,
-  },
-  totalsBox: {
-    width: '40%',
-    padding: 15,
-    backgroundColor: '#FFFBF7',
-    borderRadius: 8,
-    border: 1,
     borderColor: '#FCE7F3',
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-    fontSize: 11,
-  },
-  totalRowFinal: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 8,
-    borderTop: 2,
-    borderTopColor: '#FCE7F3',
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#BE185D',
-  },
-  notesSection: {
-    marginTop: 30,
-    padding: 15,
-    backgroundColor: '#F0FDFA', // teal-50 (suave)
-    borderRadius: 8,
-    border: 1,
-    borderColor: '#CCFBF1',
-  },
-  notesTitle: {
+    paddingVertical: 8,
     fontSize: 10,
+    color: '#4403C',
+  },
+  colDesc: { width: '50%' },
+  colQty: { width: '15%', textAlign: 'center' },
+  colPrice: { width: '20%', textAlign: 'right' },
+  colTotal: { width: '15%', textAlign: 'right', fontWeight: 'bold' },
+  
+  // 🎨 ESTILOS MEJORADOS PARA TOTALES (Más espacio y jerarquía)
+  totalSection: {
+    marginTop: 30,
+    alignItems: 'flex-end', // Alinea todo el bloque a la derecha
+  },
+  totalBox: {
+    backgroundColor: '#FFFBF7', // Tono hueso muy suave y elegante
+    border: '1pt solid #FCE7F3', // Borde sutil para definir el área
+    borderRadius: 8,
+    padding: 20, // Más espacio interno para que "respire"
+    width: '45%', // Un poco más ancho para evitar compresión
+    flexDirection: 'column', // Apila etiqueta y monto verticalmente
+    alignItems: 'flex-end', // Alinea el texto a la derecha
+  },
+  totalLabel: {
+    fontSize: 10,
+    color: '#78716C', // Gris suave para no competir con el monto
     fontWeight: 'bold',
-    color: '#0F766E',
-    marginBottom: 6,
+    letterSpacing: 1,
+    marginBottom: 8, // Espacio entre la etiqueta y el número
     textTransform: 'uppercase',
   },
-  notesText: {
-    fontSize: 10,
-    color: '#115E59',
-    lineHeight: 1.5,
+  totalAmount: {
+    fontSize: 22, // Más grande para impacto visual
+    fontWeight: 'bold',
+    color: '#9D174D', // Color de marca
   },
+
   footer: {
     position: 'absolute',
     bottom: 40,
     left: 40,
     right: 40,
     textAlign: 'center',
-    fontSize: 9,
-    color: '#A8A29E',
     borderTop: 1,
-    borderTopColor: '#E7E5E4',
+    borderColor: '#D4AF37',
     paddingTop: 15,
+  },
+  footerCursive: {
+    fontFamily: 'Cursive',
+    fontSize: 16,
+    color: '#b985e8',
+    marginBottom: 10,
+  },
+  footerText: {
+    fontSize: 8,
+    color: '#78716C',
   },
 });
 
 interface PedidoPDFProps {
   pedido: any;
+  tipo?: 'pedido' | 'presupuesto';
 }
 
-export const PedidoPDF = ({ pedido }: PedidoPDFProps) => {
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+export const PedidoPDF = ({ pedido, tipo = 'pedido' }: PedidoPDFProps) => {
+  const config = {
+    pedido: {
+      titulo: 'PEDIDO',
+      labelTotal: 'TOTAL A PAGAR',
+      mensajeCierre: '¡Gracias por confiar en Candy Ilusiones para hacer tus momentos especiales!',
+      validez: 'Pago al retirar',
+    },
+    presupuesto: {
+      titulo: 'PRESUPUESTO',
+      labelTotal: 'TOTAL PRESUPUESTADO',
+      mensajeCierre: '¡Gracias por confiar en Candy Ilusiones para hacer tus momentos especiales!',
+      mensajevalidez: '¡Este presupuesto es válido por 15 días! Esperamos tu confirmación.',
+      validez: 'Válido por: 15 días',
+    },
   };
 
-  const formatPrice = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(amount);
-  };
+  const current: {
+    titulo: string;
+    labelTotal: string;
+    mensajeCierre: string;
+    mensajevalidez?: string;
+    validez: string;
+  } = config[tipo];
+  const total = pedido?.productos?.reduce((acc: number, prod: any) => {
+    const precio = prod.precioUnitario || prod.precio || 0;
+    return acc + (prod.cantidad * precio);
+  }, 0) || pedido?.total || 0;
+
+  const logoSrc = "/img/logo-candy-removebg-preview.png";
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        
-        {/* Header */}
+
+        <Image style={styles.watermark} src={logoSrc} />
+
         <View style={styles.header}>
-          <View style={styles.brandSection}>
-            {/* ✅ AQUÍ VA EL LOGO */}
-            <Image src="/img/logo-candy-removebg-preview.png" style={styles.logo} />
-            
+          <Image style={styles.logo} src={logoSrc} />
+          <View>
             <Text style={styles.brandName}>Candy Ilusiones</Text>
-            <Text style={styles.brandTagline}>Productos Personalizados con Amor</Text>
-            <Text style={{...styles.clientText, marginTop: 8, fontSize: 9}}>📍 Buenos Aires, Argentina</Text>
-            <Text style={{...styles.clientText, fontSize: 9}}>📱 +54 9 11 4146 1312</Text>
-          </View>
-          <View style={styles.documentInfo}>
-            <Text style={styles.docTitle}>Comprobante de Pedido</Text>
-            <Text style={styles.docDate}>Nº {pedido._id.slice(-6).toUpperCase()}</Text>
-            <Text style={styles.docDate}>Fecha: {formatDate(pedido.createdAt)}</Text>
-            <Text style={styles.docDate}>Entrega estimada: {formatDate(pedido.fechaEntregaEstimada)}</Text>
+            <Text style={styles.brandSubtitle}>PRODUCTOS PERSONALIZADOS CON AMOR</Text>
           </View>
         </View>
 
-        {/* Datos del Cliente */}
         <View style={styles.clientSection}>
-          <Text style={styles.clientTitle}>Datos de la Clienta</Text>
-          <Text style={styles.clientText}><Text style={{fontWeight: 'bold'}}>Nombre:</Text> {pedido.clienteNombre}</Text>
-          <Text style={styles.clientText}><Text style={{fontWeight: 'bold'}}>Teléfono:</Text> {pedido.clienteTelefono}</Text>
-        </View>
-
-        {/* Tabla de Productos */}
-        <View style={styles.table}>
-          <View style={styles.tableHeader}>
-            <Text style={styles.col1}>Producto</Text>
-            <Text style={styles.col2}>Cant.</Text>
-            <Text style={styles.col3}>Precio Unit.</Text>
-            <Text style={styles.col4}>Subtotal</Text>
+          <View style={styles.clientBox}>
+            <Text style={styles.label}>CLIENTE</Text>
+            <Text style={styles.text}>{pedido.clienteNombre || 'Cliente'}</Text>
+            <Text style={styles.textLight}>{pedido.clienteEmail || 'Sin email registrado'}</Text>
+            <Text style={styles.textLight}>{pedido.clienteTelefono || 'Sin teléfono'}</Text>
           </View>
-          {pedido.productos.map((item: any, index: number) => (
-            <View key={index} style={styles.tableRow}>
-              <Text style={styles.col1}>{item.nombre}</Text>
-              <Text style={styles.col2}>{item.cantidad}</Text>
-              <Text style={styles.col3}>{formatPrice(item.precioUnitario)}</Text>
-              <Text style={styles.col4}>{formatPrice(item.subtotal)}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Totales */}
-        <View style={styles.totalsSection}>
-          <View style={styles.totalsBox}>
-            <View style={styles.totalRow}>
-              <Text>Total del Pedido:</Text>
-              <Text>{formatPrice(pedido.total)}</Text>
-            </View>
-            <View style={styles.totalRow}>
-              <Text>Seña / Adelanto:</Text>
-              <Text style={{color: '#059669'}}>- {formatPrice(pedido.seña)}</Text>
-            </View>
-            <View style={styles.totalRowFinal}>
-              <Text>Saldo Pendiente:</Text>
-              <Text>{formatPrice(pedido.saldoPendiente)}</Text>
-            </View>
+          <View style={{ width: '45%', alignItems: 'flex-end' }}>
+            <Text style={[styles.label, { textAlign: 'right' }]}>
+              {current.titulo} N° {pedido._id ? pedido._id.slice(-6).toUpperCase() : '000000'}
+            </Text>
+            <Text style={[styles.textLight, { marginTop: 5 }]}>
+              Fecha: {pedido.createdAt ? new Date(pedido.createdAt).toLocaleDateString('es-AR') : new Date().toLocaleDateString('es-AR')}
+            </Text>
+            <Text style={[styles.textLight, { marginTop: 5 }]}>{current.validez}</Text>
           </View>
         </View>
 
-        {/* Notas */}
-        {pedido.notas && (
-          <View style={styles.notesSection}>
-            <Text style={styles.notesTitle}>Observaciones</Text>
-            <Text style={styles.notesText}>{pedido.notas}</Text>
-          </View>
-        )}
+        <View style={styles.tableHeader}>
+          <Text style={styles.colDesc}>DESCRIPCIÓN</Text>
+          <Text style={styles.colQty}>CANT.</Text>
+          <Text style={styles.colPrice}>PRECIO UNIT.</Text>
+          <Text style={styles.colTotal}>TOTAL</Text>
+        </View>
 
-        {/* Footer */}
+        {pedido.productos?.map((prod: any, index: number) => {
+          const precio = prod.precioUnitario || prod.precio || 0;
+          const subtotal = prod.cantidad * precio;
+          
+          return (
+            <View
+              key={index}
+              style={[
+                styles.tableRow,
+                index % 2 === 0 ? { backgroundColor: '#FFFBF7' } : {}
+              ]}
+            >
+              <Text style={styles.colDesc}>{prod.nombre || 'Producto'}</Text>
+              <Text style={styles.colQty}>{prod.cantidad || 0}</Text>
+              <Text style={styles.colPrice}>${precio.toLocaleString('es-AR')}</Text>
+              <Text style={styles.colTotal}>${subtotal.toLocaleString('es-AR')}</Text>
+            </View>
+          );
+        })}
+
+        {/* 💰 5. TOTALES (DISEÑO PREMIUM MEJORADO) */}
+        <View style={styles.totalSection}>
+          <View style={styles.totalBox}>
+            <Text style={styles.totalLabel}>{current.labelTotal}</Text> 
+            <Text style={styles.totalAmount}>${total.toLocaleString('es-AR')}</Text>
+          </View>
+        </View>
+
         <View style={styles.footer}>
-          <Text>¡Gracias por confiar en nosotras para hacer tus momentos especiales! 💜</Text>
-          <Text style={{marginTop: 4}}>Candy Ilusiones © {new Date().getFullYear()} • Todos los derechos reservados</Text>
+          <Text style={styles.footerCursive}>{current.mensajeCierre}</Text>
+          {current.mensajevalidez && (
+            <Text style={styles.footerText}>{current.mensajevalidez}</Text>
+          )} 
+          <Text style={styles.footerText}>
+              
+            {siteConfig.companyName} -  {siteConfig.companyUrl} - {siteConfig.whatsapp} | {siteConfig.email}
+          </Text>
         </View>
 
       </Page>
