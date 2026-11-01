@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
+import { siteConfig } from '@/app/lib/config';
 
 // ─────────────────────────────────────────────────────────────
 // 🔹 Iconos Minimalistas (Estilo Candy)
@@ -42,8 +43,8 @@ export default function Contact() {
   const [status, setStatus] = useState<{ type: 'success' | 'error' | ''; message: string }>({ type: '', message: '' });
   const [loading, setLoading] = useState(false);
 
-  const whatsappNumber = '5491141461312';
-  const whatsappMessage = 'Hola, me interesa consultar por un producto personalizado en Candy Ilusiones 🎨✨';
+  const whatsappNumber = siteConfig.whatsapp;
+  const whatsappMessage = siteConfig.whatsappMessage;
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { id, value } = e.target;
@@ -160,8 +161,8 @@ export default function Contact() {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-purple-900">Email</p>
-                    <a href="mailto:hola.candyilusiones@gmail.com" className="text-sm text-purple-600 hover:text-pink-600 transition-colors font-medium">
-                      hola.candyilusiones@gmail.com
+                    <a href={`mailto:${siteConfig.email}`} className="text-sm text-purple-600 hover:text-pink-600 transition-colors font-medium">
+                      {siteConfig.email}
                     </a>
                   </div>
                 </div>

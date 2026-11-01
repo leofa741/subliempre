@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { siteConfig } from '@/app/lib/config';
 
 // ─────────────────────────────────────────────────────────────
 // 🔹 ICONOS MINIMALISTAS (Estilo Candy Pastel)
@@ -253,7 +254,7 @@ export default function AboutPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
               <a
-                href="https://wa.me/5491141461312?text=Hola,%20me%20interesa%20consultar%20por%20un%20producto%20personalizado%20🎨"
+                href={`https://wa.me/${siteConfig.whatsapp}?text=${encodeURIComponent(siteConfig.whatsappMessage)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold text-sm tracking-wide transition-all duration-300 shadow-lg shadow-green-300/40 hover:shadow-xl hover:shadow-green-300/50 hover:scale-[1.02] active:scale-[0.98]"
