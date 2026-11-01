@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import Swal from 'sweetalert2';
 import { 
   FaBoxOpen, FaPlus, FaEdit, FaTrash, FaExclamationTriangle, 
-  FaCheckCircle, FaArrowRight, FaSearch, FaFilter, FaStar
+  FaCheckCircle, FaSearch, FaFilter, FaStar
 } from 'react-icons/fa';
 
 interface Product {
@@ -81,7 +81,6 @@ export default function DashboardProductosPage() {
     }
   };
 
-  // ✅ NUEVA FUNCIÓN: Alternar estado "Destacado"
   const handleToggleDestacado = async (id: string, currentStatus: boolean) => {
     setTogglingId(id);
     try {
@@ -95,7 +94,6 @@ export default function DashboardProductosPage() {
       });
 
       if (res.ok) {
-        // Actualizamos el estado local inmediatamente para que se vea el cambio sin recargar
         setProducts(prev => prev.map(p => 
           p._id === id ? { ...p, destacado: !currentStatus } : p
         ));
@@ -206,49 +204,51 @@ export default function DashboardProductosPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8">
-      <div className="max-w-7xl mx-auto mt-50 pt-8 space-y-8">
+    <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8 pb-24">
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
         
-        <div className="flex flex-col lg:flex-row lg:items-center mt-10 lg:mt-0 justify-between gap-6">
+        {/* ─── HEADER ─── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <a href="/gestion" className="inline-flex items-center gap-1.5 text-rose-600 hover:text-rose-700 transition-colors mb-4">
+            <a href="/gestion" className="inline-flex items-center gap-1.5 text-rose-600 hover:text-rose-700 transition-colors mb-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
               Volver al Panel
             </a>
-            <h1 className="text-3xl sm:text-4xl font-serif font-medium text-stone-800 mb-2">
+            <h1 className="text-2xl sm:text-4xl font-serif font-medium text-stone-800">
               Catálogo de Productos
             </h1>
-            <p className="text-stone-500 font-light">
+            <p className="text-stone-500 font-light text-sm sm:text-base mt-1">
               Gestiona tus productos, revisa márgenes y optimiza precios.
             </p>
           </div>
           <button
             onClick={() => router.push('/gestion/productos/nuevo')}
-            className="group inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold shadow-lg shadow-rose-200/50 hover:shadow-xl hover:shadow-rose-300/60 hover:scale-[1.02] active:scale-[0.98] transition-all"
+            className="w-full sm:w-auto group inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold shadow-lg shadow-rose-200/50 hover:shadow-xl hover:shadow-rose-300/60 active:scale-[0.98] transition-all"
           >
             <FaPlus className="group-hover:rotate-90 transition-transform duration-300" />
             <span>Crear Producto</span>
           </button>
         </div>
 
+        {/* ─── ESTADÍSTICAS ─── */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-5 border border-rose-100 shadow-sm">
+          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-5 border border-rose-100 shadow-sm active:scale-[0.99] transition-transform">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold uppercase tracking-wider text-stone-500">Total Productos</span>
               <FaBoxOpen className="text-rose-300" />
             </div>
             <p className="text-3xl font-serif font-bold text-stone-800">{totalProductos}</p>
           </div>
-          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-5 border border-rose-100 shadow-sm">
+          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-5 border border-rose-100 shadow-sm active:scale-[0.99] transition-transform">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold uppercase tracking-wider text-stone-500">Margen Promedio</span>
               <FaCheckCircle className="text-emerald-300" />
             </div>
             <p className="text-3xl font-serif font-bold text-emerald-600">{margenPromedio}%</p>
           </div>
-          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-5 border border-rose-100 shadow-sm">
+          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-5 border border-rose-100 shadow-sm active:scale-[0.99] transition-transform">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold uppercase tracking-wider text-stone-500">Alertas de Precio</span>
               <FaExclamationTriangle className={productosEnPerdida > 0 ? 'text-amber-400' : 'text-stone-300'} />
@@ -259,6 +259,7 @@ export default function DashboardProductosPage() {
           </div>
         </div>
 
+        {/* ─── BARRA DE BÚSQUEDA Y FILTROS ─── */}
         <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-4 border border-rose-100 shadow-sm flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
             <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
@@ -267,7 +268,7 @@ export default function DashboardProductosPage() {
               placeholder="Buscar producto por nombre..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 rounded-xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all"
+              className="w-full pl-11 pr-4 py-3 rounded-xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all text-base"
             />
           </div>
           <div className="relative sm:w-64">
@@ -275,7 +276,7 @@ export default function DashboardProductosPage() {
             <select 
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 rounded-xl bg-rose-50/50 border border-rose-200 text-stone-800 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all appearance-none cursor-pointer"
+              className="w-full pl-11 pr-4 py-3 rounded-xl bg-rose-50/50 border border-rose-200 text-stone-800 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all appearance-none cursor-pointer text-base"
             >
               <option value="all">Todas las categorías</option>
               <option value="sublimacion">Sublimación</option>
@@ -287,7 +288,132 @@ export default function DashboardProductosPage() {
           </div>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] border border-rose-100 shadow-[0_8px_30px_rgb(253,164,175,0.15)] overflow-hidden">
+        {/* ═══════════════════════════════════════════════════
+            VISTA MÓVIL: TARJETAS DE PRODUCTOS
+            ═══════════════════════════════════════════════════ */}
+        <div className="md:hidden space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-lg font-serif font-medium text-stone-800">Listado</h2>
+            <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-xs font-bold">
+              {filteredProducts.length} encontrados
+            </span>
+          </div>
+
+          {filteredProducts.length === 0 ? (
+            <div className="bg-white/60 rounded-2xl p-8 text-center text-stone-400 border border-rose-100">
+              <div className="flex justify-center mb-3"><FaSearch className="text-3xl text-rose-300" /></div>
+              <p className="font-medium text-stone-600">No se encontraron productos</p>
+              <p className="text-sm mt-1">Intenta ajustar los filtros.</p>
+            </div>
+          ) : (
+            filteredProducts.map((prod) => (
+              <div key={prod._id} className="bg-white rounded-2xl p-4 border border-rose-100 shadow-sm active:scale-[0.99] transition-transform">
+                {/* Cabecera de la tarjeta */}
+                <div className="flex gap-4 mb-4">
+                  <div className="w-20 h-20 rounded-xl bg-rose-100 overflow-hidden flex-shrink-0 border border-rose-200">
+                    {prod.imagen ? (
+                      <img src={prod.imagen} alt={prod.nombre} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-rose-300">
+                        <FaBoxOpen className="text-2xl" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-stone-800 text-base truncate">{prod.nombre}</h3>
+                    <p className="text-xs text-stone-500 truncate mt-0.5">{prod.descripcion}</p>
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      <span className="inline-flex px-2 py-0.5 rounded-md bg-stone-100 text-stone-600 text-[10px] font-bold uppercase">
+                        {prod.categoria}
+                      </span>
+                      {prod.destacado && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[10px] font-bold uppercase">
+                          <FaStar className="w-2 h-2" /> Destacado
+                        </span>
+                      )}
+                      {prod.nuevo && (
+                        <span className="inline-flex px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 text-[10px] font-bold uppercase">
+                          Nuevo
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Datos financieros en grilla */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="bg-rose-50/50 p-3 rounded-xl">
+                    <p className="text-[10px] uppercase text-stone-400 font-bold mb-0.5">Costo Prod.</p>
+                    <p className="font-semibold text-stone-700 text-sm">{formatPrice(prod.costoTotalProduccion)}</p>
+                  </div>
+                  <div className="bg-rose-50/50 p-3 rounded-xl">
+                    <p className="text-[10px] uppercase text-stone-400 font-bold mb-0.5">Precio Venta</p>
+                    <p className="font-bold text-stone-800 text-sm">{formatPrice(prod.precioFinalManual)}</p>
+                  </div>
+                  
+                  {/* Margen ocupa todo el ancho para destacar */}
+                  <div className={`col-span-2 p-3 rounded-xl border flex justify-between items-center ${
+                    prod.estaEnPerdida 
+                      ? 'bg-red-50 border-red-200' 
+                      : 'bg-emerald-50 border-emerald-200'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      {prod.estaEnPerdida ? <FaExclamationTriangle className="text-red-500" /> : <FaCheckCircle className="text-emerald-500" />}
+                      <span className={`text-[10px] uppercase font-bold ${prod.estaEnPerdida ? 'text-red-600' : 'text-emerald-600'}`}>
+                        Margen de Ganancia
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-bold text-base ${prod.estaEnPerdida ? 'text-red-600' : 'text-emerald-600'}`}>
+                        {prod.estaEnPerdida ? 'Pérdida' : `${prod.margenGananciaPorcentaje}%`}
+                      </p>
+                      <p className={`text-xs ${prod.estaEnPerdida ? 'text-red-500' : 'text-emerald-500'}`}>
+                        {formatPrice(prod.precioFinalManual - prod.costoTotalProduccion)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botones de acción SIEMPRE visibles y grandes para el dedo */}
+                <div className="grid grid-cols-3 gap-3 pt-3 border-t border-rose-100">
+                  <button 
+                    onClick={() => handleToggleDestacado(prod._id, prod.destacado)}
+                    disabled={togglingId === prod._id}
+                    className={`flex flex-col items-center justify-center gap-1 py-3 rounded-xl font-semibold text-xs transition-all active:scale-95 ${
+                      prod.destacado 
+                        ? 'bg-amber-100 text-amber-700 active:bg-amber-200' 
+                        : 'bg-stone-100 text-stone-500 active:bg-stone-200'
+                    }`}
+                  >
+                    <FaStar className={`w-4 h-4 ${togglingId === prod._id ? 'animate-pulse' : ''}`} />
+                    {prod.destacado ? 'Quitar' : 'Destacar'}
+                  </button>
+                  
+                  <button 
+                    onClick={() => router.push(`/gestion/productos/editar/${prod._id}`)} 
+                    className="flex flex-col items-center justify-center gap-1 py-3 rounded-xl bg-stone-100 text-stone-600 font-semibold text-xs active:bg-stone-200 transition-all active:scale-95"
+                  >
+                    <FaEdit className="w-4 h-4" />
+                    Editar
+                  </button>
+                  
+                  <button 
+                    onClick={() => handleDelete(prod._id, prod.nombre)} 
+                    className="flex flex-col items-center justify-center gap-1 py-3 rounded-xl bg-rose-50 text-rose-600 font-semibold text-xs active:bg-rose-100 transition-all active:scale-95"
+                  >
+                    <FaTrash className="w-4 h-4" />
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* ═══════════════════════════════════════════════════
+            VISTA ESCRITORIO: TABLA (Oculta en móvil)
+            ═══════════════════════════════════════════════════ */}
+        <div className="hidden md:block bg-white/80 backdrop-blur-xl rounded-[2rem] border border-rose-100 shadow-[0_8px_30px_rgb(253,164,175,0.15)] overflow-hidden">
           {filteredProducts.length === 0 ? (
             <div className="p-16 text-center">
               <div className="w-20 h-20 mx-auto bg-rose-50 rounded-full flex items-center justify-center mb-4">
@@ -366,9 +492,7 @@ export default function DashboardProductosPage() {
                         )}
                       </td>
                       <td className="px-6 py-5 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                          
-                          {/* ✅ BOTÓN PARA DESTACAR / QUITAR DESTACADO */}
+                        <div className="flex items-center justify-end gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                           <button 
                             onClick={() => handleToggleDestacado(prod._id, prod.destacado)}
                             disabled={togglingId === prod._id}
@@ -381,7 +505,6 @@ export default function DashboardProductosPage() {
                           >
                             <FaStar className={`w-5 h-5 ${togglingId === prod._id ? 'animate-pulse' : ''}`} />
                           </button>
-
                           <button 
                             onClick={() => router.push(`/gestion/productos/editar/${prod._id}`)} 
                             className="p-2.5 rounded-xl hover:bg-white hover:shadow-md text-stone-400 hover:text-blue-500 transition-all" 

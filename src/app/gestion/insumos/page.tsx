@@ -11,11 +11,12 @@ import Loader from '@/app/components/loading/Loader';
 // 🔹 ICONOS
 // ─────────────────────────────────────────────────────────────
 const Icons = {
-  Plus: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>,
+  Plus: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>,
   Package: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>,
-  Trash: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
+  Trash: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
   Spinner: () => <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>,
-  Edit: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+  Edit: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
+  ChevronLeft: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
 };
 
 interface Insumo {
@@ -37,7 +38,6 @@ export default function GestionInsumosPage() {
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Estado del formulario
   const [formData, setFormData] = useState({
     nombre: '',
     categoria: '',
@@ -47,9 +47,6 @@ export default function GestionInsumosPage() {
     stockActual: ''
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 🔹 SEGURIDAD Y CARGA DE DATOS
-  // ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (status === 'loading') return;
     if (status === 'unauthenticated') {
@@ -96,9 +93,6 @@ export default function GestionInsumosPage() {
     }
   };
 
-  // ─────────────────────────────────────────────────────────────
-  // 🔹 HANDLERS
-  // ─────────────────────────────────────────────────────────────
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -214,55 +208,50 @@ export default function GestionInsumosPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8">
-      <div className="max-w-6xl mx-auto mt-50 space-y-8">
+    // 🛡️ BLINDADO: overflow-x-hidden evita cualquier scroll horizontal accidental
+    <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8 pb-24 overflow-x-hidden">
+      <div className="max-w-6xl mx-auto mt-8 sm:mt-12 space-y-6 sm:space-y-8">
         
-        <div>
-
-           <a href="/gestion" className="inline-flex items-center gap-1.5 text-rose-600 hover:text-rose-700 transition-colors">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                        Volver
-                    </a>
-
-
-
-          <h1 className="text-3xl sm:text-4xl font-serif font-medium text-stone-800 mb-2">
-            Gestión de Insumos
-          </h1>
-          <p className="text-stone-500 font-light">
-            Registra tus materiales para que el sistema calcule automáticamente el costo real de tus productos.
-          </p>
+        {/* ─── HEADER ─── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <a href="/gestion" className="inline-flex items-center gap-1.5 text-rose-600 hover:text-rose-700 transition-colors mb-2 sm:mb-0">
+              <Icons.ChevronLeft />
+              <span className="font-medium">Volver al Panel</span>
+            </a>
+            <h1 className="text-2xl sm:text-4xl font-serif font-medium text-stone-800">
+              Gestión de Insumos
+            </h1>
+            <p className="text-stone-500 font-light text-sm sm:text-base mt-1">
+              Registra tus materiales para calcular el costo real de tus productos.
+            </p>
+          </div>
         </div>
 
-        {/* ═══════════════════════════════════════════════════
-            FORMULARIO DE NUEVO / EDICIÓN DE INSUMO
-            ═══════════════════════════════════════════════════ */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] p-6 sm:p-8 border border-rose-100 shadow-[0_8px_30px_rgb(253,164,175,0.15)]">
+        {/* ─── FORMULARIO ─── */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl sm:rounded-[2rem] p-5 sm:p-8 border border-rose-100 shadow-sm sm:shadow-[0_8px_30px_rgb(253,164,175,0.15)]">
           <h2 className="text-lg font-serif font-medium text-stone-800 mb-6 flex items-center gap-2">
             <Icons.Package /> {editingId ? 'Editar Material' : 'Agregar Nuevo Material'}
           </h2>
           
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             <div className="sm:col-span-2 lg:col-span-1">
-              <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">Nombre del Insumo</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-1.5 ml-1">Nombre del Insumo</label>
               <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} required
-                className="w-full px-4 py-3.5 rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all"
+                className="w-full px-4 py-3.5 rounded-xl sm:rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all text-base"
                 placeholder="Ej: Tinta de Sublimación Negra" />
             </div>
 
-            {/* ✅ CAMBIO: Categoría flexible con Datalist */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">Categoría</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-1.5 ml-1">Categoría</label>
               <input 
                 list="categorias-insumos"
                 name="categoria"
                 value={formData.categoria}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3.5 rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all"
-                placeholder="Ej: Tintas, Papeles, o escribe una nueva..."
+                className="w-full px-4 py-3.5 rounded-xl sm:rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all text-base"
+                placeholder="Ej: Tintas, Papeles..."
               />
               <datalist id="categorias-insumos">
                 <option value="Sublimación" />
@@ -271,15 +260,12 @@ export default function GestionInsumosPage() {
                 <option value="Decoración" />
                 <option value="Otros" />
               </datalist>
-              <p className="text-[10px] text-stone-400 mt-1.5 ml-1 flex items-center gap-1">
-                <span>💡</span> Selecciona una sugerencia o escribe tu propia categoría.
-              </p>
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">Unidad de Medida</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-1.5 ml-1">Unidad de Medida</label>
               <select name="unidadMedida" value={formData.unidadMedida} onChange={handleChange}
-                className="w-full px-4 py-3.5 rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all">
+                className="w-full px-4 py-3.5 rounded-xl sm:rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all text-base">
                 <option value="unidades">Unidades</option>
                 <option value="ml">Mililitros (ml)</option>
                 <option value="litros">Litros (L)</option>
@@ -291,29 +277,29 @@ export default function GestionInsumosPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">Costo del Paquete ($)</label>
-              <input type="number" step="0.01" name="costo" value={formData.costo} onChange={handleChange} required
-                className="w-full px-4 py-3.5 rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all"
+              <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-1.5 ml-1">Costo del Paquete ($)</label>
+              <input type="number" inputMode="decimal" step="0.01" name="costo" value={formData.costo} onChange={handleChange} required
+                className="w-full px-4 py-3.5 rounded-xl sm:rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all text-base"
                 placeholder="0.00" />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">Cantidad en el Paquete</label>
-              <input type="number" step="0.01" name="cantidadPaquete" value={formData.cantidadPaquete} onChange={handleChange} required
-                className="w-full px-4 py-3.5 rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all"
-                placeholder="Ej: 1000 (si son ml)" />
+              <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-1.5 ml-1">Cantidad en el Paquete</label>
+              <input type="number" inputMode="decimal" step="0.01" name="cantidadPaquete" value={formData.cantidadPaquete} onChange={handleChange} required
+                className="w-full px-4 py-3.5 rounded-xl sm:rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all text-base"
+                placeholder="Ej: 1000" />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">Stock Actual (Opcional)</label>
-              <input type="number" step="0.01" name="stockActual" value={formData.stockActual} onChange={handleChange}
-                className="w-full px-4 py-3.5 rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all"
+              <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-1.5 ml-1">Stock Actual (Opcional)</label>
+              <input type="number" inputMode="decimal" step="0.01" name="stockActual" value={formData.stockActual} onChange={handleChange}
+                className="w-full px-4 py-3.5 rounded-xl sm:rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all text-base"
                 placeholder="0" />
             </div>
 
-            <div className="sm:col-span-2 lg:col-span-3 pt-2 flex gap-3">
+            <div className="sm:col-span-2 lg:col-span-3 pt-2 flex flex-col sm:flex-row gap-3">
               <button type="submit" disabled={submitting}
-                className="group relative inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-sm tracking-wide transition-all duration-500 overflow-hidden bg-gradient-to-r from-rose-400 to-pink-500 text-white shadow-lg shadow-rose-200/50 hover:shadow-xl hover:shadow-rose-300/60 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed">
+                className="w-full sm:w-auto order-1 sm:order-none group relative inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl sm:rounded-2xl font-bold text-sm tracking-wide transition-all duration-500 overflow-hidden bg-gradient-to-r from-rose-400 to-pink-500 text-white shadow-lg shadow-rose-200/50 hover:shadow-xl hover:shadow-rose-300/60 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
                 {!submitting && <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />}
                 {submitting ? (
                   <><Icons.Spinner /> <span>Guardando...</span></>
@@ -326,8 +312,8 @@ export default function GestionInsumosPage() {
                 <button type="button" onClick={() => {
                   setFormData({ nombre: '', categoria: '', costo: '', cantidadPaquete: '', unidadMedida: 'unidades', stockActual: '' });
                   setEditingId(null);
-                }} className="px-6 py-4 rounded-2xl font-bold text-sm tracking-wide text-stone-600 bg-stone-100 hover:bg-stone-200 transition-all">
-                  Cancelar
+                }} className="w-full sm:w-auto order-2 sm:order-none px-6 py-4 rounded-xl sm:rounded-2xl font-bold text-sm tracking-wide text-stone-600 bg-stone-100 hover:bg-stone-200 transition-all active:scale-[0.98]">
+                  Cancelar Edición
                 </button>
               )}
             </div>
@@ -335,9 +321,83 @@ export default function GestionInsumosPage() {
         </div>
 
         {/* ═══════════════════════════════════════════════════
-            LISTA DE INSUMOS
+            VISTA MÓVIL: LISTA VERTICAL DE TARJETAS (BLINDADA)
             ═══════════════════════════════════════════════════ */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] border border-rose-100 shadow-[0_8px_30px_rgb(253,164,175,0.15)] overflow-hidden">
+        <div className="md:hidden space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-lg font-serif font-medium text-stone-800">Inventario</h2>
+            <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-xs font-bold">
+              {insumos.length} registrados
+            </span>
+          </div>
+
+          {insumos.length === 0 ? (
+            <div className="bg-white/60 rounded-2xl p-8 text-center text-stone-400 border border-rose-100">
+              <div className="flex justify-center mb-3"><Icons.Package /></div>
+              <p className="font-medium text-stone-600">Aún no has registrado ningún insumo.</p>
+              <p className="text-sm mt-1">Completa el formulario de arriba para comenzar.</p>
+            </div>
+          ) : (
+            insumos.map((insumo) => (
+              // 🛡️ BLINDADO: w-full y overflow-hidden garantizan que la tarjeta no se salga de la pantalla
+              <div key={insumo._id} className="w-full bg-white rounded-2xl p-4 border border-rose-100 shadow-sm active:scale-[0.99] transition-transform overflow-hidden">
+                {/* Cabecera de la tarjeta */}
+                <div className="flex justify-between items-start mb-3 gap-2">
+                  <div className="min-w-0 flex-1">
+                    {/* 🛡️ BLINDADO: break-words evita que nombres largos estiren la pantalla */}
+                    <h3 className="font-bold text-stone-800 text-base break-words">{insumo.nombre}</h3>
+                    <span className="inline-flex mt-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wide truncate max-w-full">
+                      {insumo.categoria}
+                    </span>
+                  </div>
+                  <div className={`flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold ${
+                    insumo.stockActual > 10 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                  }`}>
+                    {insumo.stockActual}
+                  </div>
+                </div>
+
+                {/* Datos en grilla 2x2 */}
+                <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
+                  <div className="bg-rose-50/50 p-2.5 rounded-xl">
+                    <p className="text-[10px] uppercase text-stone-400 font-bold mb-0.5">Costo Paquete</p>
+                    <p className="font-semibold text-stone-700 break-words">{formatPrice(insumo.costo)}</p>
+                  </div>
+                  <div className="bg-rose-50/50 p-2.5 rounded-xl">
+                    <p className="text-[10px] uppercase text-stone-400 font-bold mb-0.5">Contenido</p>
+                    <p className="font-semibold text-stone-700 break-words">{insumo.cantidadPaquete} {insumo.unidadMedida}</p>
+                  </div>
+                  <div className="col-span-2 bg-rose-100/50 p-2.5 rounded-xl border border-rose-200/50 flex justify-between items-center">
+                    <p className="text-[10px] uppercase text-rose-500 font-bold">Costo Unitario</p>
+                    <p className="font-bold text-rose-600 text-base break-words">
+                      {formatPrice(calcularCostoUnitario(insumo.costo, insumo.cantidadPaquete))} 
+                      <span className="text-xs text-stone-400 font-normal"> /{insumo.unidadMedida}</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Botones de acción SIEMPRE visibles en móvil */}
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-rose-100">
+                  <button 
+                    onClick={() => handleEdit(insumo)} 
+                    className="flex items-center justify-center gap-2 py-3 rounded-xl bg-stone-100 text-stone-600 font-semibold text-sm active:bg-stone-200 transition-colors"
+                  >
+                    <Icons.Edit /> Editar
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(insumo._id, insumo.nombre)} 
+                    className="flex items-center justify-center gap-2 py-3 rounded-xl bg-rose-50 text-rose-600 font-semibold text-sm active:bg-rose-100 transition-colors"
+                  >
+                    <Icons.Trash /> Eliminar
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* ─── LISTA DE INSUMOS: VISTA ESCRITORIO (TABLA) ─── */}
+        <div className="hidden md:block bg-white/80 backdrop-blur-xl rounded-[2rem] border border-rose-100 shadow-[0_8px_30px_rgb(253,164,175,0.15)] overflow-hidden">
           <div className="p-6 sm:p-8 border-b border-rose-100 flex items-center justify-between">
             <h2 className="text-lg font-serif font-medium text-stone-800">Inventario de Materiales</h2>
             <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-xs font-bold">
@@ -347,7 +407,7 @@ export default function GestionInsumosPage() {
 
           {insumos.length === 0 ? (
             <div className="p-12 text-center text-stone-400">
-              <Icons.Package />
+              <div className="flex justify-center mb-3"><Icons.Package /></div>
               <p className="mt-4 font-medium">Aún no has registrado ningún insumo.</p>
               <p className="text-sm mt-1">Completa el formulario de arriba para comenzar.</p>
             </div>
@@ -393,14 +453,14 @@ export default function GestionInsumosPage() {
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button 
                             onClick={() => handleEdit(insumo)} 
-                            className="p-2 rounded-xl hover:bg-white hover:shadow-md text-stone-400 hover:text-blue-500 transition-all"
+                            className="p-2.5 rounded-xl hover:bg-white hover:shadow-md text-stone-400 hover:text-blue-500 transition-all"
                             title="Editar"
                           >
                             <Icons.Edit />
                           </button>
                           <button 
                             onClick={() => handleDelete(insumo._id, insumo.nombre)} 
-                            className="p-2 rounded-xl hover:bg-white hover:shadow-md text-stone-400 hover:text-red-500 transition-all"
+                            className="p-2.5 rounded-xl hover:bg-white hover:shadow-md text-stone-400 hover:text-red-500 transition-all"
                             title="Eliminar"
                           >
                             <Icons.Trash />
