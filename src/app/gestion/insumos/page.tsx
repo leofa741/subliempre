@@ -210,7 +210,7 @@ export default function GestionInsumosPage() {
   return (
     // 🛡️ BLINDADO: overflow-x-hidden evita cualquier scroll horizontal accidental
     <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8 pb-24 overflow-x-hidden">
-      <div className="max-w-6xl mx-auto mt-8 sm:mt-12 space-y-6 sm:space-y-8">
+      <div className="max-w-6xl mx-auto mt-52 sm:mt-52 space-y-6 sm:space-y-8">
         
         {/* ─── HEADER ─── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
