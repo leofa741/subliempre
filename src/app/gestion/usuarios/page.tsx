@@ -71,7 +71,6 @@ export default function GestionUsuariosPage() {
   };
 
   const handleRoleChange = async (userId: string, newRole: string, currentRole: string) => {
-    // 🛡️ Bloqueo en el frontend también
     if (userId === session?.user?.id) {
       Swal.fire({
         icon: 'warning',
@@ -81,11 +80,10 @@ export default function GestionUsuariosPage() {
         background: '#FFFBF7',
         color: '#44403C'
       });
-      fetchUsers(); // Revertir visualmente
+      fetchUsers();
       return;
     }
 
-    // Advertencia para roles sensibles
     if (['admin', 'superadmin'].includes(newRole) && !['admin', 'superadmin'].includes(currentRole)) {
       const confirm = await Swal.fire({
         icon: 'warning',
@@ -175,23 +173,24 @@ export default function GestionUsuariosPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8">
-      <div className="max-w-6xl mx-auto mt-50 pt-8 space-y-8">
+    // 🛡️ BLINDADO: overflow-x-hidden y pb-24 para evitar scroll horizontal y dar espacio al final
+    <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8 pb-24 overflow-x-hidden">
+      <div className="max-w-6xl mx-auto mt-8 sm:mt-12 space-y-6 sm:space-y-8">
         
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
-            <a href="/gestion" className="inline-flex items-center gap-1.5 text-rose-600 hover:text-rose-700 transition-colors mb-4">
+            <a href="/gestion" className="inline-flex items-center gap-1.5 text-rose-600 hover:text-rose-700 transition-colors mb-2">
               <FaArrowLeft className="w-4 h-4" /> Volver al Panel
             </a>
-            <h1 className="text-3xl sm:text-4xl font-serif font-medium text-stone-800 mb-2">
+            <h1 className="text-2xl sm:text-4xl font-serif font-medium text-stone-800">
               Gestión de Roles
             </h1>
-            <p className="text-stone-500 font-light">
+            <p className="text-stone-500 font-light text-sm sm:text-base mt-1">
               Asigna permisos de administrador o vendedor a los usuarios registrados.
             </p>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-rose-200 shadow-sm">
+          <div className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/80 border border-rose-200 shadow-sm">
             <FaUsers className="text-rose-400" />
             <span className="text-sm font-bold text-stone-600">{users.length} Usuarios</span>
           </div>
@@ -209,8 +208,107 @@ export default function GestionUsuariosPage() {
           </div>
         </div>
 
-        {/* Tabla de Usuarios */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] border border-rose-100 shadow-[0_8px_30px_rgb(253,164,175,0.15)] overflow-hidden">
+        {/* ═══════════════════════════════════════════════════
+            VISTA MÓVIL: LISTA VERTICAL DE TARJETAS (BLINDADA)
+            ═══════════════════════════════════════════════════ */}
+        <div className="md:hidden space-y-4">
+          {users.length === 0 ? (
+            <div className="p-12 text-center bg-white/60 rounded-2xl border border-rose-100">
+              <FaUsers className="w-12 h-12 text-rose-300 mx-auto mb-4" />
+              <p className="text-stone-500 font-medium">No hay usuarios registrados aún.</p>
+            </div>
+          ) : (
+            users.map((user) => {
+              const esUsuarioActual = user._id === session?.user?.id;
+              
+              return (
+                <div key={user._id} className="w-full bg-white rounded-2xl p-4 border border-rose-100 shadow-sm active:scale-[0.99] transition-transform overflow-hidden">
+                  {/* Cabecera: Avatar + Nombre */}
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm border flex-shrink-0 ${
+                      esUsuarioActual 
+                        ? 'bg-gradient-to-br from-rose-200 to-pink-200 text-rose-700 border-rose-300' 
+                        : 'bg-gradient-to-br from-rose-100 to-pink-100 text-rose-600 border-rose-200'
+                    }`}>
+                      {user.name?.charAt(0) || 'U'}{user.lastName?.charAt(0) || ''}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-bold text-stone-800 text-base break-words leading-tight">
+                          {user.name} {user.lastName}
+                        </p>
+                        {esUsuarioActual && (
+                          <span className="text-[9px] font-bold text-rose-600 bg-rose-100 px-2 py-0.5 rounded-full border border-rose-200 uppercase">
+                            Tú
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-stone-500 break-all mt-0.5">{user.email}</p>
+                      <p className="text-[10px] text-stone-400 mt-0.5">{user.google ? 'Registrado con Google' : 'Registro manual'}</p>
+                    </div>
+                  </div>
+
+                  {/* Rol Actual */}
+                  <div className="mb-4">
+                    <p className="text-[10px] uppercase text-stone-400 font-bold mb-1.5 ml-1">Rol Actual</p>
+                    <div className="inline-block">
+                      {getRoleBadge(user.role)}
+                    </div>
+                  </div>
+
+                  {/* Área de Acción */}
+                  {esUsuarioActual ? (
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-stone-50 border border-stone-200 text-stone-500 text-sm">
+                      <FaLock className="w-4 h-4 flex-shrink-0 text-stone-400" />
+                      <span className="font-medium">No puedes modificar tu propio rol por seguridad.</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-[10px] uppercase text-stone-400 font-bold mb-1.5 ml-1">Asignar Nuevo Rol</p>
+                        <select 
+                          id={`role-select-${user._id}`}
+                          defaultValue={user.role}
+                          className="w-full px-4 py-3.5 rounded-xl bg-rose-50/50 border border-rose-200 text-stone-800 text-base focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all appearance-none"
+                        >
+                          <option value="user">Cliente (user)</option>
+                          <option value="vendedor">Vendedor</option>
+                          <option value="admin">Administrador</option>
+                          {session?.user?.role === 'superadmin' && (
+                            <option value="superadmin">Superadministrador</option>
+                          )}
+                        </select>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          const select = document.getElementById(`role-select-${user._id}`) as HTMLSelectElement;
+                          handleRoleChange(user._id, select.value, user.role);
+                        }}
+                        disabled={savingId === user._id}
+                        className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-rose-400 to-pink-500 text-white text-sm font-bold shadow-md hover:shadow-lg active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {savingId === user._id ? (
+                          <svg className="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        ) : (
+                          <FaSave className="w-4 h-4" />
+                        )}
+                        Guardar Cambios
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* ═══════════════════════════════════════════════════
+            VISTA ESCRITORIO: TABLA (Oculta en móvil)
+            ═══════════════════════════════════════════════════ */}
+        <div className="hidden md:block bg-white/80 backdrop-blur-xl rounded-[2rem] border border-rose-100 shadow-[0_8px_30px_rgb(253,164,175,0.15)] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
@@ -237,38 +335,39 @@ export default function GestionUsuariosPage() {
                     >
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border ${
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border flex-shrink-0 ${
                             esUsuarioActual 
                               ? 'bg-gradient-to-br from-rose-200 to-pink-200 text-rose-700 border-rose-300' 
                               : 'bg-gradient-to-br from-rose-100 to-pink-100 text-rose-600 border-rose-200'
                           }`}>
                             {user.name?.charAt(0) || 'U'}{user.lastName?.charAt(0) || ''}
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-bold text-stone-800 text-sm">{user.name} {user.lastName}</p>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-bold text-stone-800 text-sm break-words">{user.name} {user.lastName}</p>
                               {esUsuarioActual && (
                                 <span className="text-[9px] font-bold text-rose-600 bg-rose-100 px-2 py-0.5 rounded-full border border-rose-200 uppercase">
                                   Tú
                                 </span>
                               )}
                             </div>
-                            <p className="text-[10px] text-stone-400">{user.google ? 'Registrado con Google' : 'Registro manual'}</p>
+                            <p className="text-[10px] text-stone-400 mt-0.5">{user.google ? 'Registrado con Google' : 'Registro manual'}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-5 text-sm text-stone-600">{user.email}</td>
+                      <td className="px-6 py-5 text-sm text-stone-600 break-all">{user.email}</td>
                       <td className="px-6 py-5 text-center">{getRoleBadge(user.role)}</td>
                       <td className="px-6 py-5">
                         {esUsuarioActual ? (
-                          <div className="flex items-center gap-2 text-stone-400 text-sm italic bg-stone-100 px-3 py-2 rounded-xl border border-stone-200">
+                          <div className="flex items-center gap-2 text-stone-400 text-sm italic bg-stone-100 px-3 py-2 rounded-xl border border-stone-200 w-full sm:w-auto">
                             <FaLock className="w-3 h-3" />
-                            <span>Bloqueado por seguridad</span>
+                            <span>Bloqueado</span>
                           </div>
                         ) : (
                           <select 
+                            id={`role-select-desktop-${user._id}`}
                             defaultValue={user.role}
-                            className="w-full sm:w-48 px-3 py-2 rounded-xl bg-white border border-rose-200 text-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all"
+                            className="w-full sm:w-48 px-3 py-2.5 rounded-xl bg-white border border-rose-200 text-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all"
                           >
                             <option value="user">Cliente (user)</option>
                             <option value="vendedor">Vendedor</option>
@@ -284,12 +383,12 @@ export default function GestionUsuariosPage() {
                           <span className="text-xs text-stone-400 italic">—</span>
                         ) : (
                           <button 
-                            onClick={(e) => {
-                              const select = (e.target as HTMLElement).closest('tr')?.querySelector('select') as HTMLSelectElement;
+                            onClick={() => {
+                              const select = document.getElementById(`role-select-desktop-${user._id}`) as HTMLSelectElement;
                               handleRoleChange(user._id, select.value, user.role);
                             }}
                             disabled={savingId === user._id}
-                            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-rose-400 to-pink-500 text-white text-sm font-bold shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-400 to-pink-500 text-white text-sm font-bold shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {savingId === user._id ? (
                               <svg className="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
