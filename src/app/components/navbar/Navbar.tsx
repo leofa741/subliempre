@@ -172,7 +172,7 @@ export default function Navbar() {
                     <Image
                       src="/img/logo-candy-removebg-preview.png"
                       alt="Candy Ilusiones"
-                      width={scrolled ? 90 : 180}
+                      width={scrolled ? 70 : 150}
                       height={scrolled ? 40 : 80}
                       priority
                       className="relative transition-all duration-500 drop-shadow-md group-hover:drop-shadow-xl"
