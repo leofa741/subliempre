@@ -11,6 +11,8 @@ import {
 
 import { formatARS } from '@/app/lib/formatcurrenci';
 import VideoHero from './components/ui/VideoHero';
+import { siteConfig } from '@/app/lib/config';
+
 
 interface Product {
   _id: string;
@@ -232,7 +234,7 @@ function PageContent() {
                     Ver Catálogo
                     <FaArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </Link>
-                  <a href="https://wa.me/5491141461312?text=Hola!%20Quiero%20cotizar%20un%20pedido%20personalizado%20🎨" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-white/80 backdrop-blur-md text-rose-700 font-bold rounded-full border border-rose-200 hover:bg-rose-50 hover:border-rose-300 hover:text-rose-800 transition-all duration-300 shadow-sm">
+                  <a href={`https://wa.me/${siteConfig.whatsapp}?text=${encodeURIComponent(siteConfig.whatsappMessage)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-white/80 backdrop-blur-md text-rose-700 font-bold rounded-full border border-rose-200 hover:bg-rose-50 hover:border-rose-300 hover:text-rose-800 transition-all duration-300 shadow-sm">
                     <FaWhatsapp className="w-5 h-5 text-emerald-500" />
                     Cotizar Ahora
                   </a>

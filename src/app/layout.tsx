@@ -13,6 +13,7 @@ import { ToastContainer } from "react-toastify";
 
 import Loader from "./components/loading/Loader";
 import VersionChecker from "./components/version/VersionChecker";
+import { siteConfig } from '@/app/lib/config';
 
 
 
@@ -99,7 +100,7 @@ export default function RootLayout({
             {children}
 
            <a
-  href="https://wa.me/5491141461312?text=Hola,%20me%20interesa%20saber%20más%20sobre%20sus%20productos."
+  href={`https://wa.me/${siteConfig.whatsapp}?text=${encodeURIComponent(siteConfig.whatsappMessage)}`}
   target="_blank"
   rel="noopener noreferrer"
   className="fixed bottom-6 left-6 z-50" /* ✅ Cambiado de right-6 a left-6 */

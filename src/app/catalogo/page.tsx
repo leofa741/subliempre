@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { FaShoppingBag, FaWhatsapp, FaPlus, FaMinus, FaTimes, FaStar, FaMagic, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
-
+import { siteConfig } from '@/app/lib/config';
 interface Product {
   _id: string;
   nombre: string;
@@ -29,7 +29,7 @@ export default function CatalogoPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const WHATSAPP_NUMBER = '5491141461312';
+  const WHATSAPP_NUMBER = siteConfig.whatsapp; // Número de WhatsApp desde la configuración
 
   // ─────────────────────────────────────────────────────────────
   // 🔹 CARGA DE PRODUCTOS (OPTIMIZADA PARA TIEMPO REAL)
