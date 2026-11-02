@@ -144,7 +144,7 @@ export default function GestionPedidosPage() {
     // 🛡️ BLINDADO: overflow-x-hidden y pb-24 para evitar scroll horizontal
     <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8 pb-24 overflow-x-hidden">
       {/* ✅ CORREGIDO: mt-8 sm:mt-12 en lugar de mt-50 */}
-      <div className="max-w-7xl mx-auto mt-8 sm:mt-12 space-y-6 sm:space-y-8">
+      <div className="max-w-7xl mx-auto mt-50 sm:mt-52 space-y-6 sm:space-y-8">
         
         {/* ═══════════════════════════════════════════════════
             HEADER Y RESUMEN FINANCIERO
