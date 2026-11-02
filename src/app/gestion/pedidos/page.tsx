@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import { toast } from 'react-toastify';
 import { 
   FaClipboardList, FaPlus, FaSearch, FaFilter, 
-  FaClock, FaSpinner, FaCheckCircle, FaTimesCircle, FaBoxOpen 
+  FaClock, FaSpinner, FaCheckCircle, FaTimesCircle, FaBoxOpen, FaChevronRight
 } from 'react-icons/fa';
 
 interface ProductoPedido {
@@ -40,9 +40,6 @@ export default function GestionPedidosPage() {
   const [filterEstado, setFilterEstado] = useState('todos');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // ─────────────────────────────────────────────────────────────
-  // 🔹 SEGURIDAD Y CARGA DE DATOS
-  // ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (status === 'loading') return;
     if (status === 'unauthenticated') {
@@ -89,17 +86,14 @@ export default function GestionPedidosPage() {
     return new Date(dateString).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
-  // Filtrado local por búsqueda
   const filteredPedidos = pedidos.filter(p => 
     p.clienteNombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.clienteTelefono.includes(searchTerm)
   );
 
-  // Cálculos de resumen
   const totalPendienteCobro = pedidos.reduce((acc, p) => acc + p.saldoPendiente, 0);
   const pedidosEnProduccion = pedidos.filter(p => p.estado === 'en_produccion').length;
 
-  // Helper para badges de estado
   const getStatusBadge = (estado: string) => {
     const styles: Record<string, { bg: string; text: string; border: string; icon: JSX.Element; label: string }> = {
       pendiente: { 
@@ -147,30 +141,32 @@ export default function GestionPedidosPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8">
-      <div className="max-w-7xl mt-50 mx-auto space-y-8">
+    // 🛡️ BLINDADO: overflow-x-hidden y pb-24 para evitar scroll horizontal
+    <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8 pb-24 overflow-x-hidden">
+      {/* ✅ CORREGIDO: mt-8 sm:mt-12 en lugar de mt-50 */}
+      <div className="max-w-7xl mx-auto mt-8 sm:mt-12 space-y-6 sm:space-y-8">
         
         {/* ═══════════════════════════════════════════════════
             HEADER Y RESUMEN FINANCIERO
             ═══════════════════════════════════════════════════ */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
-              <a href="/gestion/productos" className="inline-flex items-center gap-1.5 text-rose-600 hover:text-rose-700 transition-colors">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                        Volver
-                    </a>
-            <h1 className="text-3xl sm:text-4xl font-serif font-medium text-stone-800 mb-2">
+            <a href="/gestion" className="inline-flex items-center gap-1.5 text-rose-600 hover:text-rose-700 transition-colors mb-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Volver al Panel
+            </a>
+            <h1 className="text-2xl sm:text-4xl font-serif font-medium text-stone-800">
               Gestión de Pedidos
             </h1>
-            <p className="text-stone-500 font-light">
+            <p className="text-stone-500 font-light text-sm sm:text-base mt-1">
               Controla el estado de producción y los cobros de cada trabajo.
             </p>
           </div>
           <button
             onClick={() => router.push('/gestion/pedidos/nuevo')}
-            className="group inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold shadow-lg shadow-rose-200/50 hover:shadow-xl hover:shadow-rose-300/60 hover:scale-[1.02] active:scale-[0.98] transition-all"
+            className="w-full sm:w-auto group inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold shadow-lg shadow-rose-200/50 hover:shadow-xl hover:shadow-rose-300/60 active:scale-[0.98] transition-all"
           >
             <FaPlus className="group-hover:rotate-90 transition-transform duration-300" />
             <span>Nuevo Pedido</span>
@@ -179,21 +175,23 @@ export default function GestionPedidosPage() {
 
         {/* Tarjetas de Resumen */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-5 border border-rose-100 shadow-sm">
+          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-5 border border-rose-100 shadow-sm active:scale-[0.99] transition-transform">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold uppercase tracking-wider text-stone-500">Pedidos Activos</span>
               <FaClipboardList className="text-rose-300" />
             </div>
-            <p className="text-3xl font-serif font-bold text-stone-800">{pedidos.filter(p => p.estado !== 'entregado' && p.estado !== 'cancelado').length}</p>
+            <p className="text-3xl font-serif font-bold text-stone-800">
+              {pedidos.filter(p => p.estado !== 'entregado' && p.estado !== 'cancelado').length}
+            </p>
           </div>
-          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-5 border border-rose-100 shadow-sm">
+          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-5 border border-rose-100 shadow-sm active:scale-[0.99] transition-transform">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold uppercase tracking-wider text-stone-500">En Producción</span>
               <FaSpinner className="text-blue-300" />
             </div>
             <p className="text-3xl font-serif font-bold text-blue-600">{pedidosEnProduccion}</p>
           </div>
-          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-5 border border-rose-100 shadow-sm">
+          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-5 border border-rose-100 shadow-sm active:scale-[0.99] transition-transform">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold uppercase tracking-wider text-stone-500">Saldo por Cobrar</span>
               <FaBoxOpen className="text-emerald-300" />
@@ -213,15 +211,23 @@ export default function GestionPedidosPage() {
               placeholder="Buscar por nombre de clienta o teléfono..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 rounded-xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all"
+              className="w-full pl-11 pr-10 py-3 rounded-xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all text-base"
             />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 hover:text-rose-500 transition-colors text-xl font-bold"
+              >
+                ×
+              </button>
+            )}
           </div>
           <div className="relative sm:w-64">
             <FaFilter className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
             <select 
               value={filterEstado}
               onChange={(e) => setFilterEstado(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 rounded-xl bg-rose-50/50 border border-rose-200 text-stone-800 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all appearance-none cursor-pointer"
+              className="w-full pl-11 pr-4 py-3 rounded-xl bg-rose-50/50 border border-rose-200 text-stone-800 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all appearance-none cursor-pointer text-base"
             >
               <option value="todos">Todos los estados</option>
               <option value="pendiente">Pendiente</option>
@@ -234,9 +240,76 @@ export default function GestionPedidosPage() {
         </div>
 
         {/* ═══════════════════════════════════════════════════
-            TABLA DE PEDIDOS
+            VISTA MÓVIL: LISTA VERTICAL DE TARJETAS (BLINDADA)
             ═══════════════════════════════════════════════════ */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] border border-rose-100 shadow-[0_8px_30px_rgb(253,164,175,0.15)] overflow-hidden">
+        <div className="md:hidden space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-lg font-serif font-medium text-stone-800">Listado de Pedidos</h2>
+            <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-xs font-bold">
+              {filteredPedidos.length} {searchTerm || filterEstado !== 'todos' ? 'encontrados' : 'registrados'}
+            </span>
+          </div>
+
+          {filteredPedidos.length === 0 ? (
+            <div className="bg-white/60 rounded-2xl p-8 text-center text-stone-400 border border-rose-100">
+              <div className="flex justify-center mb-3"><FaClipboardList className="text-3xl text-rose-300" /></div>
+              <p className="font-medium text-stone-600">No se encontraron pedidos</p>
+              <p className="text-sm mt-1">Intenta ajustar los filtros o crea un nuevo pedido.</p>
+            </div>
+          ) : (
+            filteredPedidos.map((pedido) => (
+              <div key={pedido._id} className="w-full bg-white rounded-2xl p-4 border border-rose-100 shadow-sm active:scale-[0.99] transition-transform overflow-hidden">
+                {/* Cabecera: Cliente + Estado */}
+                <div className="flex justify-between items-start mb-3 gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold text-stone-800 text-base break-words">{pedido.clienteNombre}</h3>
+                    <p className="text-xs text-stone-500 mt-0.5 break-all">{pedido.clienteTelefono}</p>
+                  </div>
+                  {getStatusBadge(pedido.estado)}
+                </div>
+
+                {/* Datos en grilla */}
+                <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
+                  <div className="bg-rose-50/50 p-2.5 rounded-xl">
+                    <p className="text-[10px] uppercase text-stone-400 font-bold mb-0.5">Productos</p>
+                    <p className="font-semibold text-stone-700">{pedido.productos.length} items</p>
+                  </div>
+                  <div className="bg-rose-50/50 p-2.5 rounded-xl">
+                    <p className="text-[10px] uppercase text-stone-400 font-bold mb-0.5">Entrega Est.</p>
+                    <p className="font-semibold text-stone-700">{formatDate(pedido.fechaEntregaEstimada)}</p>
+                  </div>
+                  
+                  {/* Totales ocupan todo el ancho para destacar */}
+                  <div className="col-span-2 bg-rose-100/50 p-3 rounded-xl border border-rose-200/50 flex justify-between items-center">
+                    <div>
+                      <p className="text-[10px] uppercase text-stone-400 font-bold">Total Pedido</p>
+                      <p className="font-bold text-stone-800 text-base">{formatPrice(pedido.total)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] uppercase text-stone-400 font-bold">Saldo Pendiente</p>
+                      <p className={`font-bold text-base ${pedido.saldoPendiente > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                        {pedido.saldoPendiente > 0 ? formatPrice(pedido.saldoPendiente) : 'Pagado'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botón de acción SIEMPRE visible y grande para el dedo */}
+                <button 
+                  onClick={() => router.push(`/gestion/pedidos/${pedido._id}`)}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-rose-400 to-pink-500 text-white font-semibold text-sm active:scale-[0.98] transition-all shadow-md hover:shadow-lg"
+                >
+                  <FaClipboardList className="w-4 h-4" /> Ver detalles y gestionar
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* ═══════════════════════════════════════════════════
+            VISTA ESCRITORIO: TABLA (Oculta en móvil)
+            ═══════════════════════════════════════════════════ */}
+        <div className="hidden md:block bg-white/80 backdrop-blur-xl rounded-[2rem] border border-rose-100 shadow-[0_8px_30px_rgb(253,164,175,0.15)] overflow-hidden">
           {filteredPedidos.length === 0 ? (
             <div className="p-16 text-center">
               <div className="w-20 h-20 mx-auto bg-rose-50 rounded-full flex items-center justify-center mb-4">
@@ -262,8 +335,8 @@ export default function GestionPedidosPage() {
                   {filteredPedidos.map((pedido) => (
                     <tr key={pedido._id} className="group hover:bg-rose-50/30 transition-colors">
                       <td className="px-6 py-5">
-                        <p className="font-bold text-stone-800 text-base">{pedido.clienteNombre}</p>
-                        <p className="text-xs text-stone-500">{pedido.clienteTelefono}</p>
+                        <p className="font-bold text-stone-800 text-base break-words">{pedido.clienteNombre}</p>
+                        <p className="text-xs text-stone-500 break-all">{pedido.clienteTelefono}</p>
                         <p className="text-[10px] text-stone-400 mt-1">{pedido.productos.length} producto(s)</p>
                       </td>
                       <td className="px-6 py-5">
@@ -291,7 +364,7 @@ export default function GestionPedidosPage() {
                             className="p-2.5 rounded-xl hover:bg-white hover:shadow-md text-stone-400 hover:text-blue-500 transition-all" 
                             title="Ver detalles / Editar"
                           >
-                            <FaClipboardList />
+                            <FaClipboardList className="w-5 h-5" />
                           </button>
                         </div>
                       </td>
