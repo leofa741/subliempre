@@ -5,9 +5,9 @@ import { useRouter, useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { toast } from 'react-toastify';
 import { pdf } from '@react-pdf/renderer';
-import { 
-  FaArrowLeft, FaTrash, FaSave, FaCalendarAlt, FaStickyNote, 
-  FaCheckCircle, FaClock, FaSpinner, FaTimesCircle, FaBoxOpen, FaFilePdf 
+import {
+  FaArrowLeft, FaTrash, FaSave, FaCalendarAlt, FaStickyNote,
+  FaCheckCircle, FaClock, FaSpinner, FaTimesCircle, FaBoxOpen, FaFilePdf
 } from 'react-icons/fa';
 
 import { PedidoPDF } from '@/app/components/pedidospdf/PedidoPDF';
@@ -69,7 +69,7 @@ export default function DetallePedidoPage() {
           setEstado(data.pedido.estado);
           setNotas(data.pedido.notas || '');
           setClienteEmail(data.pedido.clienteEmail || '');
-          
+
           if (data.pedido.fechaEntregaEstimada) {
             setFechaEntrega(new Date(data.pedido.fechaEntregaEstimada).toISOString().split('T')[0]);
           }
@@ -97,7 +97,7 @@ export default function DetallePedidoPage() {
 
       const res = await fetch(`/api/gestion/pedidos/${pedidoId}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.user?.token}`
         },
@@ -133,7 +133,7 @@ export default function DetallePedidoPage() {
 
   const handleDelete = async () => {
     if (!confirm('¿Estás segura de eliminar este pedido permanentemente?')) return;
-    
+
     try {
       const res = await fetch(`/api/gestion/pedidos/${pedidoId}`, {
         method: 'DELETE',
@@ -161,16 +161,16 @@ export default function DetallePedidoPage() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      
+
       // 🎯 Nombre del archivo dinámico
       const prefix = tipo === 'presupuesto' ? 'Presupuesto' : 'Pedido';
       link.download = `${prefix}_CandyIlusiones_${pedido._id.slice(-6).toUpperCase()}.pdf`;
-      
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      
+
       toast.success(`¡${prefix} descargado con éxito! 📄`, {
         style: { background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0' }
       });
@@ -184,11 +184,37 @@ export default function DetallePedidoPage() {
     }
   };
 
-  const formatPrice = (amount: number) => 
+  const formatPrice = (amount: number) =>
     new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(amount);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+  };
+
+  // ✅ Función inteligente para formatear números argentinos a formato WhatsApp internacional
+  const getWhatsAppLink = (phone: string) => {
+    if (!phone) return '#';
+
+    // 1. Eliminar todo lo que no sea número
+    let clean = phone.replace(/\D/g, '');
+
+    // 2. Quitar el 0 inicial si existe (ej: 011 -> 11)
+    if (clean.startsWith('0')) {
+      clean = clean.slice(1);
+    }
+
+    // 3. Quitar el 15 si existe (ej: 1511... -> 11...)
+    if (clean.startsWith('15')) {
+      clean = clean.slice(2);
+    }
+
+    // 4. Si no tiene el código de país 54, se lo agregamos (asumiendo Argentina)
+    // Usamos 549 que es el estándar para celulares en WhatsApp
+    if (!clean.startsWith('54')) {
+      clean = '549' + clean;
+    }
+
+    return `https://wa.me/${clean}`;
   };
 
   const getStatusBadge = (estado: string) => {
@@ -227,7 +253,7 @@ export default function DetallePedidoPage() {
     <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8">
       {/* ✅ CORREGIDO: mt-8 sm:mt-12 en lugar de mt-50 */}
       <div className="max-w-6xl mx-auto mt-50 sm:mt-52">
-        
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
@@ -242,11 +268,11 @@ export default function DetallePedidoPage() {
               <p className="text-stone-500 font-light">Creado el {formatDate(pedido.createdAt)}</p>
             </div>
           </div>
-          
+
           {/* 🎯 NUEVOS BOTONES DE DESCARGA */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            <button 
-              onClick={() => handleDownloadPDF('presupuesto')} 
+            <button
+              onClick={() => handleDownloadPDF('presupuesto')}
               disabled={downloadingType !== null}
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white border-2 border-rose-300 text-rose-600 font-bold shadow-sm hover:bg-rose-50 hover:border-rose-400 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -257,8 +283,8 @@ export default function DetallePedidoPage() {
               )}
               <span>Presupuesto</span>
             </button>
-            <button 
-              onClick={() => handleDownloadPDF('pedido')} 
+            <button
+              onClick={() => handleDownloadPDF('pedido')}
               disabled={downloadingType !== null}
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -276,10 +302,10 @@ export default function DetallePedidoPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
+
           {/* COLUMNA IZQUIERDA: DETALLES DEL PEDIDO */}
           <div className="lg:col-span-2 space-y-6">
-            
+
             <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] p-6 sm:p-8 border border-rose-100 shadow-[0_8px_30px_rgb(253,164,175,0.15)]">
               <h2 className="text-lg font-serif font-medium text-stone-800 mb-4">Datos de la Clienta</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -289,18 +315,26 @@ export default function DetallePedidoPage() {
                 </div>
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-1">Teléfono</p>
-                  <a href={`https://wa.me/${pedido.clienteTelefono.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-lg font-medium text-emerald-600 hover:text-emerald-700 transition-colors flex items-center gap-2">
-                    {pedido.clienteTelefono} <span className="text-xs bg-emerald-100 px-2 py-0.5 rounded-full">WhatsApp</span>
+                  <a
+                    href={getWhatsAppLink(pedido.clienteTelefono)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-lg font-medium text-emerald-600 hover:text-emerald-700 transition-colors flex items-center gap-2 group"
+                  >
+                    {pedido.clienteTelefono}
+                    <span className="text-xs bg-emerald-100 px-2 py-0.5 rounded-full group-hover:bg-emerald-200 transition-colors">
+                      WhatsApp
+                    </span>
                   </a>
                 </div>
-                
+
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">
                     Email de la Clienta (para enviar alerta cuando esté "Listo")
                   </label>
-                  <input 
-                    type="email" 
-                    value={clienteEmail} 
+                  <input
+                    type="email"
+                    value={clienteEmail}
                     onChange={(e) => setClienteEmail(e.target.value)}
                     className="w-full px-4 py-3.5 rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all"
                     placeholder="Ej: clienta@email.com"
@@ -339,10 +373,10 @@ export default function DetallePedidoPage() {
           {/* COLUMNA DERECHA: ACCIONES Y FINANZAS */}
           <div className="lg:col-span-1">
             <div className="sticky top-8 space-y-6">
-              
+
               <div className="bg-white/90 backdrop-blur-2xl rounded-[2rem] p-6 border border-rose-100 shadow-[0_25px_50px_-12px_rgba(253,164,175,0.3)]">
                 <h3 className="text-lg font-serif font-medium text-stone-800 mb-6 text-center">Gestión del Pedido</h3>
-                
+
                 <div className="mb-6">
                   <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">Estado Actual</label>
                   <select value={estado} onChange={e => setEstado(e.target.value as any)}
