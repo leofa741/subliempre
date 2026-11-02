@@ -33,9 +33,6 @@ const montserrat = Montserrat({
   weight: ["400"],
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.candyilusiones.com.ar';
-
-
 
 export const metadata: Metadata = {
   title: 'Candy Ilusiones',
