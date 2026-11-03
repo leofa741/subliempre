@@ -1,15 +1,28 @@
-/* eslint-disable */
 'use client';
 
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 
+interface UserData {
+  name: string;
+  lastName: string;
+  address?: string;
+  city?: string;
+  zipCode?: string;
+  email: string;
+  phone?: string;
+  img?: string;
+}
+
 export default function EditProfilePage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
+  
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<UserData>({
     name: '',
     lastName: '',
     address: '',
@@ -21,32 +34,57 @@ export default function EditProfilePage() {
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
 
-  // Cargar datos del perfil
+  // ✅ UN SOLO useEffect limpio que maneja autenticación y carga de datos
   useEffect(() => {
-    fetch('/api/profile')
-      .then((res) => res.json())
-      .then((data) => {
-        const user = data.user;
-        setFormData({
-          name: user.name || '',
-          lastName: user.lastName || '',
-          address: user.address || '',
-          city: user.city || '',
-          zipCode: user.zipCode || '',
-          email: user.email || '',
-          phone: user.phone || '',
-          img: user.img || '',
-        });
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error('Error al obtener el perfil:', error);
-        toast.error('Error al cargar los datos del perfil', { 
-          style: { background: '#FFF1F2', color: '#BE185D', border: '1px solid #FECDD3' } 
-        });
-        setLoading(false);
-      });
-  }, []);
+    if (status === 'unauthenticated') {
+      router.push('/login');
+      return;
+    }
+
+    if (status === 'authenticated') {
+      const fetchProfile = async () => {
+        try {
+          const res = await fetch('/api/profile');
+          if (!res.ok) throw new Error('Error al obtener el perfil');
+          
+          const data = await res.json();
+          const user = data.user;
+          
+          setFormData({
+            name: user.name || '',
+            lastName: user.lastName || '',
+            address: user.address || '',
+            city: user.city || '',
+            zipCode: user.zipCode || '',
+            email: user.email || '',
+            phone: user.phone || '',
+            img: user.img || '',
+          });
+        } catch (error) {
+          console.error('Error al obtener el perfil:', error);
+          toast.error('Error al cargar los datos del perfil', { 
+            style: { background: '#FFF1F2', color: '#BE185D', border: '1px solid #FECDD3' } 
+          });
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchProfile();
+    }
+  }, [status, router]);
+
+  // ✅ Un solo punto de retorno para el estado de carga
+  if (loading || status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-[3px] border-rose-200 border-t-rose-500 rounded-full animate-spin" />
+          <span className="text-stone-500 text-sm font-medium">Cargando tu perfil...</span>
+        </div>
+      </div>
+    );
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -72,11 +110,11 @@ export default function EditProfilePage() {
       const formDataToSend = new FormData();
       formDataToSend.append('name', formData.name);
       formDataToSend.append('lastName', formData.lastName);
-      formDataToSend.append('address', formData.address);
-      formDataToSend.append('city', formData.city);
-      formDataToSend.append('zipCode', formData.zipCode);
+      formDataToSend.append('address', formData.address || '');
+      formDataToSend.append('city', formData.city || '');
+      formDataToSend.append('zipCode', formData.zipCode || '');
       formDataToSend.append('email', formData.email);
-      formDataToSend.append('phone', formData.phone);
+      formDataToSend.append('phone', formData.phone || '');
       if (imageFile) formDataToSend.append('img', imageFile);
 
       const response = await fetch('/api/user', {
@@ -92,7 +130,8 @@ export default function EditProfilePage() {
       toast.success('¡Perfil actualizado con éxito! 🎨', { 
         style: { background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0' } 
       });
-      setTimeout(() => router.push('/profile'), 1500);
+      
+      setTimeout(() => router.push('/perfil'), 1500);
     } catch (err: unknown) {
       setSubmitting(false);
       const errorMessage = err instanceof Error ? err.message : typeof err === 'string' ? err : 'Ocurrió un error inesperado.';
@@ -102,24 +141,12 @@ export default function EditProfilePage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-[3px] border-rose-200 border-t-rose-500 rounded-full animate-spin" />
-          <span className="text-stone-500 text-sm font-medium">Cargando tu perfil...</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Clase reutilizable para inputs premium
   const inputClasses =
     "w-full px-4 py-3.5 rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 " +
     "focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all duration-300";
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 overflow-hidden selection:bg-rose-200 selection:text-rose-900">
+    <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 overflow-hidden selection:bg-rose-200 selection:text-rose-900 pb-20">
       
       {/* ✨ Background ambiental con orbes sedosos */}
       <div className="absolute inset-0 pointer-events-none">
@@ -127,11 +154,21 @@ export default function EditProfilePage() {
         <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-amber-200/40 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
       </div>
 
-      <div className="relative z-10 max-w-3xl mx-auto mt-40 px-4 py-12 sm:py-20">
+      {/* ✅ CORREGIDO: mt-8 sm:mt-16 en lugar de mt-40 para evitar espacio vacío gigante */}
+      <div className="relative z-10 max-w-3xl mx-auto mt-50 sm:mt-56 px-4 py-8 sm:py-12">
         
         {/* Header elegante */}
-        <div className="text-center mb-10">
-          <h1 className="text-4xl sm:text-5xl font-serif font-medium text-stone-800 mb-3">
+        <div className="text-center mb-8 sm:mb-10">
+          <button 
+            onClick={() => router.push('/perfil')} 
+            className="inline-flex items-center gap-1.5 text-rose-600 hover:text-rose-700 transition-colors mb-4 text-sm font-medium mx-auto"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Volver a mi perfil
+          </button>
+          <h1 className="text-3xl sm:text-4xl font-serif font-medium text-stone-800 mb-3">
             Editar Perfil
           </h1>
           <p className="text-stone-500 font-light">
@@ -146,9 +183,9 @@ export default function EditProfilePage() {
             {/* Sección de Imagen de Perfil */}
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 p-6 rounded-2xl bg-rose-50/50 border border-rose-100">
               <div className="relative group">
-                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md">
+                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md bg-rose-100">
                   <img 
-                    src={formData.img || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(formData.name + '+' + formData.lastName) + '&background=FCE7F3&color=BE185D'} 
+                    src={formData.img || `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name + '+' + formData.lastName)}&background=FCE7F3&color=BE185D`} 
                     alt="Vista previa" 
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
                   />
@@ -246,7 +283,7 @@ export default function EditProfilePage() {
               
               <button
                 type="button"
-                onClick={() => router.push('/profile')}
+                onClick={() => router.push('/perfil')}
                 className="flex-1 group inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-white border-2 border-rose-200 text-stone-600 font-bold text-sm tracking-wide hover:bg-rose-50 hover:border-rose-300 hover:text-rose-700 transition-all duration-300"
               >
                 <span>Cancelar</span>

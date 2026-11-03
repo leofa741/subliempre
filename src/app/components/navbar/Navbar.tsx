@@ -79,7 +79,7 @@ export default function Navbar() {
     setIsMounted(true);
   }, []);
 
- 
+
 
   useEffect(() => {
     const handleScroll = () => {
@@ -201,6 +201,9 @@ export default function Navbar() {
 
               <NavLink href="/catalogo" scrolled={scrolled} active={hoveredLink === 'catalogo'} onHover={() => setHoveredLink('catalogo')} onLeave={() => setHoveredLink(null)}>
                 Catálogo
+              </NavLink>
+              <NavLink href="/profile/diseno-personalizado" scrolled={scrolled} active={hoveredLink === 'diseno-personalizado'} onHover={() => setHoveredLink('diseno-personalizado')} onLeave={() => setHoveredLink(null)}>
+                🎨 Mis Diseños Personalizados
               </NavLink>
               <NavLink href="/contact" scrolled={scrolled}>Contacto</NavLink>
               <NavLink href="/about" scrolled={scrolled}>Nosotros</NavLink>
@@ -359,6 +362,7 @@ export default function Navbar() {
                 <MobileNavLink href="/" onClick={closeMenu} index={0}>Inicio</MobileNavLink>
 
                 <MobileNavLink href="/catalogo" onClick={closeMenu} index={1}>Catálogo</MobileNavLink>
+                <MobileNavLink href="/profile/diseno-personalizado" onClick={closeMenu} index={2}>🎨 Mis Diseños Personalizados</MobileNavLink>
 
                 <MobileNavLink href="/contact" onClick={closeMenu} index={1}>Contacto</MobileNavLink>
                 <MobileNavLink href="/about" onClick={closeMenu} index={2}>Nosotros</MobileNavLink>
@@ -381,7 +385,7 @@ export default function Navbar() {
                       </div>
                     </Link>
 
-                    {( role === 'superadmin' || role === 'admin' || role === 'vendedor') && (
+                    {(role === 'superadmin' || role === 'admin' || role === 'vendedor') && (
                       <Link
                         href="/gestion"
                         onClick={closeMenu}

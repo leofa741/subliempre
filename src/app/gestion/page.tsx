@@ -10,7 +10,8 @@ import {
     FaUsers,
     FaClipboardList,
     FaArrowRight,
-    FaBoxes
+    FaBoxes,
+    FaPalette
 } from 'react-icons/fa';
 import Loader from '@/app/components/loading/Loader'; // Ajusta la ruta si es necesario
 
@@ -55,6 +56,14 @@ const modules = [
         icon: <FaClipboardList className="text-2xl text-rose-500" />,
         iconBg: 'from-rose-100 to-pink-100',
         href: '/gestion/pedidos'
+    },
+       {
+        id: 'diseno-personalizado',
+        title: 'Diseños Personalizados',
+        description: 'Gestiona las solicitudes de diseño de tus clientes y mantén un historial completo.',
+        icon: <FaPalette className="text-2xl text-indigo-500" />,
+        iconBg: 'from-indigo-100 to-purple-100',
+        href: '/gestion/diseno-personalizado'
     },
     {
         id: 'logs',
