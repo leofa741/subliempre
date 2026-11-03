@@ -12,6 +12,7 @@ import {
 import { formatARS } from '@/app/lib/formatcurrenci';
 import VideoHero from './components/ui/VideoHero';
 import { siteConfig } from '@/app/lib/config';
+import DisenoPersonalizadoCTA from './components/home/DisenoPersonalizadoCTA';
 
 
 interface Product {
@@ -301,7 +302,7 @@ function PageContent() {
           </div>
         </div>
       </section>
-
+  <DisenoPersonalizadoCTA />
       {/* PRODUCTOS DESTACADOS */}
       <section className="py-24 sm:py-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
