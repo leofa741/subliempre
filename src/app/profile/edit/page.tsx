@@ -131,7 +131,7 @@ export default function EditProfilePage() {
         style: { background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0' } 
       });
       
-      setTimeout(() => router.push('/perfil'), 1500);
+      setTimeout(() => router.push('/profile'), 1500);
     } catch (err: unknown) {
       setSubmitting(false);
       const errorMessage = err instanceof Error ? err.message : typeof err === 'string' ? err : 'Ocurrió un error inesperado.';
@@ -160,7 +160,7 @@ export default function EditProfilePage() {
         {/* Header elegante */}
         <div className="text-center mb-8 sm:mb-10">
           <button 
-            onClick={() => router.push('/perfil')} 
+            onClick={() => router.push('/profile')} 
             className="inline-flex items-center gap-1.5 text-rose-600 hover:text-rose-700 transition-colors mb-4 text-sm font-medium mx-auto"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -283,7 +283,7 @@ export default function EditProfilePage() {
               
               <button
                 type="button"
-                onClick={() => router.push('/perfil')}
+                onClick={() => router.push('/profile')}
                 className="flex-1 group inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-white border-2 border-rose-200 text-stone-600 font-bold text-sm tracking-wide hover:bg-rose-50 hover:border-rose-300 hover:text-rose-700 transition-all duration-300"
               >
                 <span>Cancelar</span>
