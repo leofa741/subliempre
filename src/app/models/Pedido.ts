@@ -26,7 +26,7 @@ const PedidoSchema = new Schema<IPedido>(
     clienteNombre: { type: String, required: true, trim: true },
     clienteTelefono: { type: String, required: true, trim: true },
     productos: [{
-      productoId: { type: Schema.Types.ObjectId, ref: 'Producto', required: true },
+      productoId: { type: Schema.Types.ObjectId, ref: 'Producto', required: false },
       nombre: { type: String, required: true },
       cantidad: { type: Number, required: true, min: 1 },
       precioUnitario: { type: Number, required: true, min: 0 },

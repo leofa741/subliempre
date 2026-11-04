@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { toast } from 'react-toastify';
-import { 
-  FaArrowLeft, FaPlus, FaTrash, FaUser, FaPhone, 
+import {
+  FaArrowLeft, FaPlus, FaTrash, FaUser, FaPhone,
   FaCalendarAlt, FaStickyNote, FaCalculator, FaCheckCircle, FaSearch, FaTimes
 } from 'react-icons/fa';
 
@@ -36,7 +36,7 @@ export default function NuevoPedidoPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchContainerRef = useRef<HTMLDivElement>(null);
-  
+
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [availableClients, setAvailableClients] = useState<ClientOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,7 +54,7 @@ export default function NuevoPedidoPage() {
   const [selectedProductId, setSelectedProductId] = useState('');
   const [showProductDropdown, setShowProductDropdown] = useState(false);
   const [itemQuantity, setItemQuantity] = useState<number>(1);
-  
+
   // Estado Financiero
   const [seña, setSeña] = useState<number>(0);
 
@@ -98,7 +98,7 @@ export default function NuevoPedidoPage() {
               nombre: p.nombre,
               precioFinal: p.precioFinalManual || p.precioSugerido || 0
             }));
-            
+
             setAvailableProducts(productosMapeados.filter((p: Product) => p.precioFinal > 0));
           }
         } else {
@@ -141,11 +141,11 @@ export default function NuevoPedidoPage() {
   const handleClientNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setClientName(value);
-    
+
     const matchedClient = availableClients.find(
       c => c.displayName.toLowerCase() === value.toLowerCase()
     );
-    
+
     if (matchedClient) {
       setClientPhone(matchedClient.telefono || '');
     }
@@ -168,7 +168,7 @@ export default function NuevoPedidoPage() {
   };
 
   // Filtrar productos en tiempo real
-  const filteredProducts = productSearch 
+  const filteredProducts = productSearch
     ? availableProducts.filter(p => p.nombre.toLowerCase().includes(productSearch.toLowerCase()))
     : availableProducts;
 
@@ -179,7 +179,7 @@ export default function NuevoPedidoPage() {
       });
       return;
     }
-    
+
     const product = availableProducts.find(p => p._id === selectedProductId);
     if (!product) return;
 
@@ -202,7 +202,7 @@ export default function NuevoPedidoPage() {
         }
       ]);
     }
-    
+
     // Resetear campos de producto
     setProductSearch('');
     setSelectedProductId('');
@@ -229,7 +229,7 @@ export default function NuevoPedidoPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (orderItems.length === 0) {
       toast.warning('Debes agregar al menos un producto al pedido', {
         style: { background: '#FFFBEB', color: '#92400E', border: '1px solid #FCD34D' }
@@ -259,7 +259,7 @@ export default function NuevoPedidoPage() {
 
       const res = await fetch('/api/gestion/pedidos', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.user?.token}`
         },
@@ -287,7 +287,7 @@ export default function NuevoPedidoPage() {
     }
   };
 
-  const formatPrice = (amount: number) => 
+  const formatPrice = (amount: number) =>
     new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(amount);
 
   if (status === 'loading' || isLoading) {
@@ -307,25 +307,25 @@ export default function NuevoPedidoPage() {
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-rose-50/50 via-[#FFFBF7] to-amber-50/30 p-4 sm:p-8">
       <div className="max-w-6xl mt-50 mx-auto">
-        
+
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <button onClick={() => router.back()} className="p-3 rounded-2xl bg-white/80 border border-rose-200 text-stone-600 hover:bg-rose-50 hover:text-rose-600 transition-all shadow-sm">
             <FaArrowLeft />
           </button>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-serif font-medium text-stone-800">Nuevo Pedido</h1>
-            <p className="text-stone-500 font-light">Registra un nuevo trabajo, calcula el total y la seña.</p>
+            <h1 className="text-3xl sm:text-4xl font-serif font-medium text-stone-800">Generar Documento</h1>
+            <p className="text-stone-500 font-light">Registra, calcula el total y la seña.</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
+
           {/* ═══════════════════════════════════════════════════
               COLUMNA IZQUIERDA: DATOS Y PRODUCTOS (2/3)
               ═══════════════════════════════════════════════════ */}
           <div className="lg:col-span-2 space-y-6">
-            
+
             {/* Card: Datos de la Clienta */}
             <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] p-6 sm:p-8 border border-rose-100 shadow-[0_8px_30px_rgb(253,164,175,0.15)]">
               <h2 className="text-lg font-serif font-medium text-stone-800 mb-6 flex items-center gap-2">
@@ -334,14 +334,14 @@ export default function NuevoPedidoPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">Nombre Completo *</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     list="clientes-sugeridos"
-                    value={clientName} 
-                    onChange={handleClientNameChange} 
+                    value={clientName}
+                    onChange={handleClientNameChange}
                     required
                     className="w-full px-4 py-3.5 rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all"
-                    placeholder="Ej: María González" 
+                    placeholder="Ej: María González"
                   />
                   <datalist id="clientes-sugeridos">
                     {availableClients.map(client => (
@@ -351,13 +351,13 @@ export default function NuevoPedidoPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">Teléfono / WhatsApp *</label>
-                  <input 
-                    type="tel" 
-                    value={clientPhone} 
-                    onChange={e => setClientPhone(e.target.value)} 
+                  <input
+                    type="tel"
+                    value={clientPhone}
+                    onChange={e => setClientPhone(e.target.value)}
                     required
                     className="w-full px-4 py-3.5 rounded-2xl bg-rose-50/50 border border-rose-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all"
-                    placeholder="Ej: 11 1234 5678" 
+                    placeholder="Ej: 11 1234 5678"
                   />
                 </div>
               </div>
@@ -366,27 +366,26 @@ export default function NuevoPedidoPage() {
             {/* Card: Agregar Productos */}
             <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] p-6 sm:p-8 border border-rose-100 shadow-[0_8px_30px_rgb(253,164,175,0.15)]">
               <h2 className="text-lg font-serif font-medium text-stone-800 mb-6 flex items-center gap-2">
-                <FaCalculator className="text-rose-400" /> Productos del Pedido
+                <FaCalculator className="text-rose-400" /> Productos
               </h2>
-              
+
               <div className="flex flex-col sm:flex-row gap-3 mb-6 p-4 rounded-2xl bg-rose-50/50 border border-rose-100" ref={searchContainerRef}>
                 {/* Buscador de productos personalizado */}
                 <div className="flex-1 relative">
                   <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
-                  <input 
+                  <input
                     type="text"
                     value={productSearch}
                     onChange={handleProductSearchChange}
                     onFocus={() => setShowProductDropdown(true)}
                     placeholder="Escribí para buscar en el catálogo..."
-                    className={`w-full pl-11 pr-10 py-3 rounded-xl bg-white border text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 transition-all ${
-                      selectedProductId 
-                        ? 'border-emerald-300 focus:ring-emerald-200 focus:border-emerald-400' 
+                    className={`w-full pl-11 pr-10 py-3 rounded-xl bg-white border text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 transition-all ${selectedProductId
+                        ? 'border-emerald-300 focus:ring-emerald-200 focus:border-emerald-400'
                         : 'border-rose-200 focus:ring-pink-200 focus:border-pink-300'
-                    }`}
+                      }`}
                   />
                   {productSearch && (
-                    <button 
+                    <button
                       type="button"
                       onClick={() => { setProductSearch(''); setSelectedProductId(''); }}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-rose-500 transition-colors"
@@ -417,7 +416,7 @@ export default function NuevoPedidoPage() {
                       )}
                     </div>
                   )}
-                  
+
                   {/* Feedback visual de selección exitosa */}
                   {selectedProductId && (
                     <p className="text-[10px] text-emerald-600 mt-1.5 ml-1 flex items-center gap-1 font-medium">
@@ -425,24 +424,24 @@ export default function NuevoPedidoPage() {
                     </p>
                   )}
                 </div>
-                
+
                 <div className="flex items-center gap-2 bg-white rounded-xl border border-rose-200 px-3">
                   <span className="text-stone-400 text-sm">Cant:</span>
-                  <input 
-                    type="number" 
-                    min="1" 
-                    value={itemQuantity} 
+                  <input
+                    type="number"
+                    min="1"
+                    value={itemQuantity}
                     onChange={e => {
                       const val = Number(e.target.value);
                       setItemQuantity(isNaN(val) || val < 1 ? 1 : val);
                     }}
-                    className="w-16 py-3 text-center text-stone-800 font-bold focus:outline-none" 
+                    className="w-16 py-3 text-center text-stone-800 font-bold focus:outline-none"
                   />
                 </div>
-                
-                <button 
-                  type="button" 
-                  onClick={addProductToOrder} 
+
+                <button
+                  type="button"
+                  onClick={addProductToOrder}
                   disabled={!selectedProductId}
                   className="px-6 py-3 rounded-xl bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:from-stone-300 disabled:to-stone-400 flex items-center justify-center gap-2"
                 >
@@ -454,7 +453,7 @@ export default function NuevoPedidoPage() {
               <div className="space-y-3">
                 {orderItems.length === 0 ? (
                   <div className="text-center py-8 border-2 border-dashed border-rose-200 rounded-2xl">
-                    <p className="text-stone-400 italic text-sm">Aún no has agregado productos a este pedido.</p>
+                    <p className="text-stone-400 italic text-sm">Aún no has agregado productos .</p>
                   </div>
                 ) : (
                   orderItems.map((item, index) => (
@@ -463,16 +462,30 @@ export default function NuevoPedidoPage() {
                         <p className="font-bold text-stone-800">{item.nombre}</p>
                         <p className="text-xs text-stone-500">{formatPrice(item.precioUnitario)} c/u</p>
                       </div>
-                      
+
                       <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 bg-rose-50 rounded-lg px-2 py-1 border border-rose-200">
+                        {/* ✅ CORREGIDO: Fondo blanco y texto oscuro fuerte */}
+                        <div className="flex items-center gap-2 bg-white rounded-lg px-2 py-1 border border-rose-200 shadow-sm">
                           <button type="button" onClick={() => updateItemQuantity(index, item.cantidad - 1)} disabled={item.cantidad <= 1}
-                            className="w-6 h-6 flex items-center justify-center text-rose-500 hover:bg-rose-200 rounded transition-colors disabled:opacity-30">-</button>
-                          <span className="text-sm font-bold text-stone-800 w-6 text-center">{item.cantidad}</span>
+                            className="w-6 h-6 flex items-center justify-center text-rose-500 hover:bg-rose-100 rounded transition-colors disabled:opacity-30">-</button>
+
+                          <span
+                            className="w-6 text-center select-none"
+                            style={{
+                              color: '#1c1917', // Negro cálido forzado (equivalente a stone-900)
+                              fontWeight: '800', // Extra bold forzado
+                              fontSize: '0.875rem' // text-sm forzado
+                            }}
+                          >
+                            {item.cantidad}
+                          </span>
+
                           <button type="button" onClick={() => updateItemQuantity(index, item.cantidad + 1)}
-                            className="w-6 h-6 flex items-center justify-center text-rose-500 hover:bg-rose-200 rounded transition-colors">+</button>
+                            className="w-6 h-6 flex items-center justify-center text-rose-500 hover:bg-rose-100 rounded transition-colors">+</button>
                         </div>
+
                         <span className="font-bold text-rose-600 w-24 text-right">{formatPrice(item.subtotal)}</span>
+
                         <button type="button" onClick={() => removeProduct(index)}
                           className="p-2 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
                           <FaTrash />
@@ -500,10 +513,10 @@ export default function NuevoPedidoPage() {
               ═══════════════════════════════════════════════════ */}
           <div className="lg:col-span-1">
             <div className="sticky top-8 space-y-6">
-              
+
               <div className="bg-white/90 backdrop-blur-2xl rounded-[2rem] p-6 border border-rose-100 shadow-[0_25px_50px_-12px_rgba(253,164,175,0.3)]">
-                <h3 className="text-lg font-serif font-medium text-stone-800 mb-6 text-center">Resumen del Pedido</h3>
-                
+                <h3 className="text-lg font-serif font-medium text-stone-800 mb-6 text-center">Resumen </h3>
+
                 {/* Fecha de Entrega */}
                 <div className="mb-6">
                   <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 ml-1">Fecha de Entrega Estimada *</label>
@@ -521,7 +534,7 @@ export default function NuevoPedidoPage() {
                   </div>
                   <div className="h-px bg-rose-100" />
                   <div className="flex justify-between text-base font-bold">
-                    <span className="text-stone-800">Total del Pedido</span>
+                    <span className="text-stone-800">Total</span>
                     <span className="text-rose-600 text-xl">{formatPrice(totalPedido)}</span>
                   </div>
                 </div>
@@ -538,11 +551,10 @@ export default function NuevoPedidoPage() {
                 </div>
 
                 {/* Saldo Pendiente */}
-                <div className={`p-4 rounded-2xl border mb-6 text-center transition-colors ${
-                  saldoPendiente > 0 
-                    ? 'bg-red-50 border-red-200' 
+                <div className={`p-4 rounded-2xl border mb-6 text-center transition-colors ${saldoPendiente > 0
+                    ? 'bg-red-50 border-red-200'
                     : 'bg-emerald-50 border-emerald-200'
-                }`}>
+                  }`}>
                   <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${saldoPendiente > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                     Saldo Pendiente de Pago
                   </p>

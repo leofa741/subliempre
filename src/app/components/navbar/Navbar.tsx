@@ -19,6 +19,15 @@ import { useSession, signOut } from 'next-auth/react';
 import { AuthContext } from '@/app/context/AuthContext';
 import { faInstagram, faLinkedin, faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 
+// ✅ 1. IMPORTAR Y CONFIGURAR LA FUENTE LOCAL
+import localFont from 'next/font/local';
+
+const cursiveFont = localFont({
+  // ⚠️ AJUSTA ESTA RUTA: Si tu Navbar está en src/app/components/navbar/, usa '../../../public/fonts/cursive.ttf'
+  src: '../../../../public/fonts/cursive.ttf',
+  variable: '--font-cursive',
+  display: 'swap',
+});
 
 // ─────────────────────────────────────────────────────────────
 // TIPOS
@@ -178,8 +187,10 @@ export default function Navbar() {
                       className="relative transition-all duration-500 drop-shadow-md group-hover:drop-shadow-xl"
                     />
                   </div>
-                  <span className={`text-[13px] tracking-[0.35em] uppercase mt-1 font-semibold transition-colors duration-500 ${scrolled ? 'text-purple-600' : 'text-purple-700'
-                    } group-hover:text-pink-500`}>
+                  {/* ✅ 2. APLICAR LA FUENTE CURSIVA AQUÍ */}
+                  <span className={`${cursiveFont.className} text-lg tracking-wide mt-1 font-normal transition-colors duration-500 ${
+                    scrolled ? 'text-purple-600' : 'text-purple-700'
+                  } group-hover:text-pink-500`}>
                     Candy Ilusiones
                   </span>
                 </div>

@@ -158,7 +158,7 @@ export default function GestionPedidosPage() {
               Volver al Panel
             </a>
             <h1 className="text-2xl sm:text-4xl font-serif font-medium text-stone-800">
-              Gestión de Pedidos
+              Gestión de Pdf
             </h1>
             <p className="text-stone-500 font-light text-sm sm:text-base mt-1">
               Controla el estado de producción y los cobros de cada trabajo.
@@ -169,7 +169,7 @@ export default function GestionPedidosPage() {
             className="w-full sm:w-auto group inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold shadow-lg shadow-rose-200/50 hover:shadow-xl hover:shadow-rose-300/60 active:scale-[0.98] transition-all"
           >
             <FaPlus className="group-hover:rotate-90 transition-transform duration-300" />
-            <span>Nuevo Pedido</span>
+            <span>Nuevo Pdf</span>
           </button>
         </div>
 
@@ -177,7 +177,7 @@ export default function GestionPedidosPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-5 border border-rose-100 shadow-sm active:scale-[0.99] transition-transform">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-stone-500">Pedidos Activos</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-stone-500">Pdf Activos</span>
               <FaClipboardList className="text-rose-300" />
             </div>
             <p className="text-3xl font-serif font-bold text-stone-800">

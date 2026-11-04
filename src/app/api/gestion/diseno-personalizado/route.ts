@@ -7,6 +7,7 @@ import UserModel from '@/app/models/User';
 // ✅ IMPORTAMOS EL TRANSPORTE Y LA PLANTILLA (Mismo patrón que en productos)
 import { emailTransporter } from '@/app/lib/emails/transporter';
 import { getNewDesignRequestAlertTemplate } from '@/app/lib/emails/templates/newDesignRequestAlert';
+import { siteConfig } from '@/app/lib/config';
 
 // ✅ POST: Cliente crea una nueva solicitud de diseño
 export async function POST(req: NextRequest) {
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
       }).select('email name');
 
       if (admins.length > 0) {
-        const adminPanelUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_APP_URL || 'https://www.candyilusiones.com.ar';
+        const adminPanelUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_APP_URL || siteConfig.compareUrl;
         const productTypeLabel = tipoProducto.replace('_', ' ').toUpperCase();
 
         const emailData = getNewDesignRequestAlertTemplate(

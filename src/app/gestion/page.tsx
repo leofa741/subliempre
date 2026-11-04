@@ -17,6 +17,14 @@ import Loader from '@/app/components/loading/Loader'; // Ajusta la ruta si es ne
 
 // Módulos disponibles (Actualizados para Candy Ilusiones)
 const modules = [
+       {
+        id: 'presupuestos-internos',
+        title: 'Presupuestos Internos',
+        description: 'Crea y gestiona presupuestos internos para tus proyectos.',
+        icon: <FaBoxOpen className="text-2xl text-rose-500" />,
+        iconBg: 'from-rose-100 to-pink-100',
+        href: '/gestion/presupuestos-internos',
+    },
     {
         id: 'productos',
         title: 'Catálogo y Costos',
